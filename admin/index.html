@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruckTracker Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+                        <path d="M15 18H9"/>
+                        <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+                        <circle cx="17" cy="18" r="2"/>
+                        <circle cx="7" cy="18" r="2"/>
+                    </svg>
+                    TruckTracker Admin
+                </h1>
+                <div class="status-indicator">
+                    <div class="status-dot live"></div>
+                    <span>Live Tracking Active</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="stats-panel">
+                    <h3>Live Statistics</h3>
+                    <div class="stat-item">
+                        <span class="stat-number" id="activeDrivers">0</span>
+                        <span class="stat-label">Active Drivers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="activeJourneys">0</span>
+                        <span class="stat-label">Active Journeys</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="totalDistance">0</span>
+                        <span class="stat-label">Total Distance (km)</span>
+                    </div>
+                </div>
+
+                <div class="drivers-panel">
+                    <h3>Active Drivers</h3>
+                    <div id="driversList" class="drivers-list">
+                        <!-- Drivers will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="alerts-panel">
+                    <h3>Recent Alerts</h3>
+                    <div id="alertsList" class="alerts-list">
+                        <!-- Alerts will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div class="map-header">
+                    <h3>Live Driver Locations</h3>
+                    <div class="map-controls">
+                        <button id="centerMap" class="control-btn">Center Map</button>
+                        <button id="toggleView" class="control-btn">Toggle View</button>
+                        <button id="refreshData" class="control-btn">Refresh</button>
+                    </div>
+                </div>
+                <div id="map" class="map"></div>
+                
+                <!-- Map legend -->
+                <div class="map-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background-color: #10b981;"></div>
+                        <span>Pickup Location</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background-color: #dc2626;"></div>
+                        <span>Delivery Location</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background-color: #2563eb;"></div>
+                        <span>Driver Location</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="journey-details-panel" id="journeyPanel" style="display: none;">
+            <div class="panel-header">
+                <h3>Journey Details</h3>
+                <button id="closePanel" class="close-btn">&times;</button>
+            </div>
+            <div id="journeyContent" class="panel-content">
+                <!-- Journey details will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Real-time connection status -->
+        <div class="connection-status" id="connectionStatus">
+            <div class="connection-indicator connected" id="connectionIndicator"></div>
+            <span id="connectionText">Connected</span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
