@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://localhost:4000' 
-// || 'https://cargo360-api.onrender.com';
+const BASE_URL = 'https://cargo360-api.onrender.com';
 
 // Types based on API contracts
 export interface User {
