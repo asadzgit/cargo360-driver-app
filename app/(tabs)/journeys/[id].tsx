@@ -1,50 +1,314 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map } from 'lucide-react-native';
+import { useJourneys } from '@/hooks/useJourneys';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
+import { apiService } from '@/services/api';
 
 export default function JourneyDetailScreen() {
   const { user } = useAuth();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [journey, setJourney] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [startingJourney, setStartingJourney] = useState(false);
+  const [completingJourney, setCompletingJourney] = useState(false);
+  const { journeys } = useJourneys();
+
+  // Location tracking - only track when journey is in progress
+  const isJourneyInProgress = journey?.status === 'in_progress' ||
+  journey?.status === 'in_transit' ||
+  journey?.status === 'picked_up';
+  const { 
+    hasPermission, 
+    currentLocation, 
+    isLocationEnabled,
+    requestLocationPermission,
+    sendLocationNow 
+  } = useLocationTracking({
+    shipmentId: journey ? parseInt(journey.id) : null,
+    isTracking: isJourneyInProgress,
+  });
 
   useEffect(() => {
-    // Mock journey data - in real app, fetch from API
-    const mockJourney = {
-      id: id,
-      clientName: 'ABC Logistics',
-      driverId: user?.role === 'driver' ? user.id : 'driver-1',
-      driverName: user?.role === 'driver' ? user.name : 'John Smith',
-      vehicleType: 'Medium Truck',
-      loadType: 'Electronics',
-      fromLocation: 'New York, NY',
-      toLocation: 'Boston, MA',
-      status: 'assigned',
-      createdAt: new Date().toISOString(),
-      assignedAt: new Date().toISOString(),
-      notes: 'Handle with care - fragile electronics',
-      estimatedDuration: '4.5 hours',
-      distance: '215 miles',
-    };
-    setJourney(mockJourney);
-  }, [id]);
+    loadJourneyDetails();
+  }, [id, journeys]);
 
-  const handleStartLiveTracking = () => {
-    router.push(`/journeys/live-tracking?journeyId=${id}`);
+  const loadJourneyDetails = async () => {
+    if (!id) return;
+
+    setLoading(true);
+    try {
+      // First try to find the journey in the cached journeys
+      const cachedJourney = journeys.find(j => j.id === id);
+      if (cachedJourney) {
+        setJourney(cachedJourney);
+        setLoading(false);
+        return;
+      }
+
+      // If not found in cache, fetch from API
+      const response = await apiService.getShipment(parseInt(id as string));
+      const shipment = response.data.shipment;
+      
+      // Map shipment to journey format
+      const mappedJourney = {
+        id: shipment.id.toString(),
+        clientId: shipment.customerId.toString(),
+        clientName: shipment.Customer?.name || 'Unknown Client',
+        driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
+        driverName: shipment.Driver?.name || shipment.Trucker?.name || 'Unassigned',
+        vehicleType: shipment.vehicleType,
+        loadType: shipment.cargoType,
+        fromLocation: shipment.pickupLocation,
+        toLocation: shipment.dropLocation,
+        status: mapApiStatusToJourneyStatus(shipment.status),
+        createdAt: shipment.createdAt,
+        assignedAt: shipment.status === 'accepted' ? shipment.updatedAt : undefined,
+        startedAt: ['picked_up', 'in_transit'].includes(shipment.status) ? shipment.updatedAt : undefined,
+        completedAt: shipment.status === 'delivered' ? shipment.updatedAt : undefined,
+        notes: shipment.description,
+        budget: shipment.budget,
+        cargoWeight: shipment.cargoWeight,
+        cargoSize: shipment.cargoSize,
+        // Calculate estimated values based on distance (rough estimates)
+        estimatedDuration: calculateEstimatedDuration(shipment.pickupLocation, shipment.dropLocation),
+        distance: calculateDistance(shipment.pickupLocation, shipment.dropLocation),
+      };
+      
+      setJourney(mappedJourney);
+    } catch (error) {
+      console.error('Error loading journey details:', error);
+      Alert.alert('Error', 'Failed to load journey details');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!journey) {
+  const mapApiStatusToJourneyStatus = (apiStatus: string) => {
+    const statusMap: Record<string, string> = {
+      'pending': 'pending',
+      'accepted': 'assigned',
+      'picked_up': 'in_progress',
+      'in_transit': 'in_progress',
+      'delivered': 'completed',
+      'cancelled': 'cancelled',
+    };
+    return statusMap[apiStatus] || 'pending';
+  };
+
+  const humanizeStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'pending': 'Pending Assignment',
+      'assigned': 'Assigned to Driver',
+      'in_progress': 'In Transit',
+      'completed': 'Delivered',
+      'cancelled': 'Cancelled',
+    };
+    return statusMap[status] || status;
+  };
+
+  const calculateEstimatedDuration = (from: string, to: string): string => {
+    // Simple estimation based on common routes - in real app, use mapping service
+    const routeEstimates: Record<string, string> = {
+      'new york': '4-6 hours',
+      'boston': '4-6 hours',
+      'chicago': '6-8 hours',
+      'detroit': '5-7 hours',
+      'philadelphia': '2-3 hours',
+      'washington': '3-4 hours',
+    };
+    
+    const fromKey = from.toLowerCase();
+    const toKey = to.toLowerCase();
+    
+    for (const [key, duration] of Object.entries(routeEstimates)) {
+      if (fromKey.includes(key) || toKey.includes(key)) {
+        return duration;
+      }
+    }
+    
+    return '4-6 hours'; // Default estimate
+  };
+
+  const calculateDistance = (from: string, to: string): string => {
+    // Simple estimation - in real app, use mapping service
+    const distanceEstimates: Record<string, string> = {
+      'new york-boston': '215 miles',
+      'boston-new york': '215 miles',
+      'chicago-detroit': '280 miles',
+      'detroit-chicago': '280 miles',
+      'new york-philadelphia': '95 miles',
+      'philadelphia-new york': '95 miles',
+    };
+    
+    const routeKey = `${from.toLowerCase().split(',')[0]}-${to.toLowerCase().split(',')[0]}`;
+    return distanceEstimates[routeKey] || '200-300 miles';
+  };
+
+  const handleStartJourney = async () => {
+    if (!journey) return;
+
+    // Check location permission before starting journey
+    if (!hasPermission) {
+      Alert.alert(
+        'Location Permission Required',
+        'Location tracking is required during the journey to provide real-time updates. Please grant location permission.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Grant Permission', 
+            onPress: async () => {
+              await requestLocationPermission();
+              if (hasPermission) {
+                handleStartJourney();
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    setStartingJourney(true);
+    try {
+      // Update status to in_transit using driver-specific endpoint
+      const response = await apiService.updateDriverShipmentStatus(
+        parseInt(journey.id),
+        'in_transit'
+      );
+
+      // Update local journey state with new data
+      const updatedShipment = response.data.shipment;
+      const updatedJourney = {
+        ...journey,
+        status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        startedAt: updatedShipment.updatedAt,
+      };
+      
+      setJourney(updatedJourney);
+      
+      // Send initial location immediately
+      await sendLocationNow();
+      
+      Alert.alert(
+        'Journey Started',
+        'Your journey has been started successfully. GPS tracking is now active and will send your location every 15 minutes.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error starting journey:', error);
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to start journey. Please try again.'
+      );
+    } finally {
+      setStartingJourney(false);
+    }
+  };
+
+  const handleCompleteJourney = async () => {
+    if (!journey) return;
+
+    setCompletingJourney(true);
+    try {
+      // Send final location before completing
+      await sendLocationNow();
+      
+      // Update status to delivered using driver-specific endpoint
+      const response = await apiService.updateDriverShipmentStatus(
+        parseInt(journey.id),
+        'delivered'
+      );
+
+      // Update local journey state with new data
+      const updatedShipment = response.data.shipment;
+      const updatedJourney = {
+        ...journey,
+        status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        completedAt: updatedShipment.updatedAt,
+      };
+      
+      setJourney(updatedJourney);
+      
+      Alert.alert(
+        'Journey Completed',
+        'Congratulations! Your journey has been completed successfully. GPS tracking has been stopped.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error completing journey:', error);
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Failed to complete journey. Please try again.'
+      );
+    } finally {
+      setCompletingJourney(false);
+    }
+  };
+
+  const handleOpenInMaps = () => {
+    if (!journey) return;
+
+    const destination = encodeURIComponent(journey.toLocation);
+    const origin = encodeURIComponent(journey.fromLocation);
+    
+    // Try to open in Google Maps first, then fallback to Apple Maps
+    const googleMapsUrl = `https://www.google.com/maps/dir/${origin}/${destination}`;
+    const appleMapsUrl = `http://maps.apple.com/?saddr=${origin}&daddr=${destination}&dirflg=d`;
+    
+    Alert.alert(
+      'Open in Maps',
+      'Choose your preferred maps application:',
+      [
+        {
+          text: 'Google Maps',
+          onPress: () => Linking.openURL(googleMapsUrl),
+        },
+        {
+          text: 'Apple Maps',
+          onPress: () => Linking.openURL(appleMapsUrl),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  if (loading) {
     return (
       <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color="#64748b" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Journey Details</Text>
+        </View>
         <Text style={styles.loadingText}>Loading journey details...</Text>
       </View>
     );
   }
 
-  const isBroker = user?.role === 'broker';
-  const isAssignedDriver = user?.role === 'driver' && journey.driverId === user.id;
+  if (!journey) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <ArrowLeft size={24} color="#64748b" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Journey Details</Text>
+        </View>
+        <Text style={styles.loadingText}>Journey not found</Text>
+      </View>
+    );
+  }
+
+  const isBroker = user?.role === 'broker' || user?.role === 'customer';
+  const isAssignedDriver = user?.role === 'driver' && journey.driverId === user.id.toString();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
@@ -58,14 +322,17 @@ export default function JourneyDetailScreen() {
       <View style={styles.journeyCard}>
         <View style={styles.journeyHeader}>
           <Text style={styles.journeyId}>#{journey.id}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{journey.status}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>
+            <Text style={styles.statusText}>{humanizeStatus(journey.status)}</Text>
           </View>
         </View>
 
         <View style={styles.clientInfo}>
           <Text style={styles.clientName}>{journey.clientName}</Text>
           <Text style={styles.loadInfo}>{journey.loadType} • {journey.vehicleType}</Text>
+          {journey.budget && (
+            <Text style={styles.budgetInfo}>Budget: ${journey.budget}</Text>
+          )}
         </View>
       </View>
 
@@ -101,6 +368,12 @@ export default function JourneyDetailScreen() {
             <Text style={styles.statValue}>{journey.estimatedDuration}</Text>
             <Text style={styles.statLabel}>Est. Duration</Text>
           </View>
+          {journey.cargoWeight && (
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{journey.cargoWeight}kg</Text>
+              <Text style={styles.statLabel}>Weight</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -114,40 +387,97 @@ export default function JourneyDetailScreen() {
             <Text style={styles.infoValue}>{journey.driverName}</Text>
           </View>
           
-          <View style={styles.infoRow}>
-            <Clock size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>Assigned:</Text>
-            <Text style={styles.infoValue}>
-              {new Date(journey.assignedAt).toLocaleDateString()}
-            </Text>
-          </View>
+          {journey.assignedAt && (
+            <View style={styles.infoRow}>
+              <Clock size={16} color="#64748b" />
+              <Text style={styles.infoLabel}>Assigned:</Text>
+              <Text style={styles.infoValue}>
+                {new Date(journey.assignedAt).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.infoRow}>
             <Truck size={16} color="#64748b" />
             <Text style={styles.infoLabel}>Vehicle:</Text>
             <Text style={styles.infoValue}>{journey.vehicleType}</Text>
           </View>
+
+          <View style={styles.infoRow}>
+            <Clock size={16} color="#64748b" />
+            <Text style={styles.infoLabel}>Created:</Text>
+            <Text style={styles.infoValue}>
+              {new Date(journey.createdAt).toLocaleDateString()}
+            </Text>
+          </View>
         </View>
 
         {journey.notes && (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesTitle}>Special Instructions</Text>
+            <Text style={styles.notesTitle}>Description</Text>
             <Text style={styles.notesText}>{journey.notes}</Text>
           </View>
         )}
       </View>
 
-      {isAssignedDriver && journey.status === 'assigned' && (
+      {isAssignedDriver && (
         <View style={styles.actionContainer}>
+          {journey.status === 'assigned' && (
+            <TouchableOpacity 
+              style={[styles.startJourneyButton, startingJourney && styles.disabledButton]} 
+              onPress={handleStartJourney}
+              disabled={startingJourney}
+            >
+              <Navigation size={20} color="#ffffff" />
+              <Text style={styles.startJourneyButtonText}>
+                {startingJourney ? 'Starting Journey...' : 'Start Journey'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {journey.status === 'in_progress' && (
+            <TouchableOpacity 
+              style={[styles.completeJourneyButton, completingJourney && styles.disabledButton]} 
+              onPress={handleCompleteJourney}
+              disabled={completingJourney}
+            >
+              <Target size={20} color="#ffffff" />
+              <Text style={styles.completeJourneyButtonText}>
+                {completingJourney ? 'Completing Journey...' : 'Complete Journey'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
           <TouchableOpacity 
-            style={styles.trackingButton} 
-            onPress={handleStartLiveTracking}
+            style={styles.mapsButton} 
+            onPress={handleOpenInMaps}
           >
-            <Navigation size={20} color="#ffffff" />
-            <Text style={styles.trackingButtonText}>Start Live Tracking</Text>
+            <Map size={20} color="#2563eb" />
+            <Text style={styles.mapsButtonText}>Open in Maps</Text>
           </TouchableOpacity>
-          <Text style={styles.trackingNote}>
-            This will share your real-time location with the admin dashboard
+          
+          {/* Location tracking status */}
+          {journey.status === 'in_progress' && (
+            <View style={styles.trackingStatus}>
+              <View style={[styles.trackingIndicator, { backgroundColor: isLocationEnabled ? '#10b981' : '#ef4444' }]} />
+              <Text style={styles.trackingStatusText}>
+                GPS Tracking: {isLocationEnabled ? 'Active' : 'Inactive'}
+              </Text>
+              {currentLocation && (
+                <Text style={styles.lastLocationText}>
+                  Last update: {new Date(currentLocation.timestamp).toLocaleTimeString()}
+                </Text>
+              )}
+            </View>
+          )}
+          
+          <Text style={styles.actionNote}>
+            {journey.status === 'assigned' 
+              ? 'Start your journey to begin GPS tracking and update status to in-transit'
+              : journey.status === 'in_progress'
+              ? 'GPS tracking is active. Complete your journey when you have delivered the cargo'
+              : 'Use maps for navigation assistance'
+            }
           </Text>
         </View>
       )}
@@ -187,6 +517,17 @@ export default function JourneyDetailScreen() {
     </ScrollView>
   );
 }
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending': return '#f59e0b';
+    case 'assigned': return '#2563eb';
+    case 'in_progress': return '#059669';
+    case 'completed': return '#10b981';
+    case 'cancelled': return '#dc2626';
+    default: return '#64748b';
+  }
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -239,7 +580,6 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   statusBadge: {
-    backgroundColor: '#2563eb',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -258,6 +598,10 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   loadInfo: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  budgetInfo: {
     fontSize: 14,
     color: '#64748b',
   },
@@ -376,7 +720,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginTop: 16,
   },
-  trackingButton: {
+  startJourneyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,12 +730,42 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  trackingButtonText: {
+  startJourneyButtonText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
   },
-  trackingNote: {
+  completeJourneyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 12,
+    marginBottom: 12,
+  },
+  completeJourneyButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  mapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563eb',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 12,
+    marginBottom: 12,
+  },
+  mapsButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  actionNote: {
     fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
@@ -432,5 +806,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  trackingStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  trackingIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  trackingStatusText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  lastLocationText: {
+    fontSize: 14,
+    color: '#64748b',
   },
 });

@@ -31,6 +31,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
+      debugger;
       await register(email, password, companyName);
       router.replace('/(tabs)');
     } catch (error) {

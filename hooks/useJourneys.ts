@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiService, Shipment } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 
+// Map API shipment to Journey interface for backward compatibility
 interface Journey {
   id: string;
   clientId: string;
@@ -16,100 +18,197 @@ interface Journey {
   startedAt?: string;
   completedAt?: string;
   notes?: string;
+  // Additional fields from API
+  budget?: number;
+  cargoWeight?: number;
+  cargoSize?: string;
+  description?: string;
 }
+
+const mapShipmentToJourney = (shipment: Shipment): Journey => {
+  // Map API status to Journey status
+  const statusMap: Record<string, Journey['status']> = {
+    'pending': 'pending',
+    'accepted': 'assigned',
+    'picked_up': 'in_progress',
+    'in_transit': 'in_progress',
+    'delivered': 'completed',
+    'cancelled': 'cancelled',
+  };
+
+  return {
+    id: shipment.id.toString(),
+    clientId: shipment.customerId.toString(),
+    driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
+    driverName: shipment.Driver?.name || shipment.Trucker?.name,
+    vehicleType: shipment.vehicleType,
+    loadType: shipment.cargoType,
+    fromLocation: shipment.pickupLocation,
+    toLocation: shipment.dropLocation,
+    status: statusMap[shipment.status] || 'pending',
+    createdAt: shipment.createdAt,
+    assignedAt: shipment.status === 'accepted' ? shipment.updatedAt : undefined,
+    startedAt: shipment.status === 'picked_up' || shipment.status === 'in_transit' ? shipment.updatedAt : undefined,
+    completedAt: shipment.status === 'delivered' ? shipment.updatedAt : undefined,
+    budget: shipment.budget,
+    cargoWeight: shipment.cargoWeight,
+    cargoSize: shipment.cargoSize,
+    description: shipment.description,
+  };
+};
 
 export function useJourneys() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    loadJourneys();
-  }, []);
+    if (user) {
+      loadJourneys();
+    }
+  }, [user]);
 
   const loadJourneys = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+    
     try {
-      const storedJourneys = await AsyncStorage.getItem('journeys');
-      if (storedJourneys) {
-        setJourneys(JSON.parse(storedJourneys));
-      } else {
-        // Initialize with mock data for demo
-        const mockJourneys: Journey[] = [
-          {
-            id: 'journey-1',
-            clientId: 'client-1',
-            vehicleType: 'Small Truck',
-            loadType: 'Electronics',
-            fromLocation: 'New York, NY',
-            toLocation: 'Boston, MA',
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'journey-2',
-            clientId: 'client-2',
-            driverId: 'driver-1',
-            driverName: 'John Smith',
-            vehicleType: 'Large Truck',
-            loadType: 'Furniture',
-            fromLocation: 'Chicago, IL',
-            toLocation: 'Detroit, MI',
-            status: 'in_progress',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            assignedAt: new Date(Date.now() - 43200000).toISOString(),
-            startedAt: new Date(Date.now() - 21600000).toISOString(),
-          },
+      let response;
+      
+      if (user.role === 'customer') {
+        // Load customer's own shipments
+        response = await apiService.getMyShipments();
+      } else if (user.role === 'driver' || user.role === 'trucker') {
+        // Load available shipments for drivers/truckers, plus their assigned ones
+        // const requests = [apiService.getAvailableShipments()];
+        const requests = [];
+        // Use role-specific endpoint for assigned shipments
+        if (user.role === 'driver') {
+          requests.push(apiService.getDriverShipments());
+        } else if (user.role === 'trucker') {
+          requests.push(apiService.getTruckerShipments());
+        }
+        
+        const [availableResponse, assignedResponse] = await Promise.all(requests);
+        
+        // Combine available and assigned shipments, avoiding duplicates
+        const availableShipments = availableResponse.data.shipments;
+        const assignedShipments = assignedResponse ? assignedResponse.data.shipments : [];
+        const assignedIds = new Set(assignedShipments.map(s => s.id));
+        
+        const allShipments = [
+          ...assignedShipments,
+          ...availableShipments.filter(s => !assignedIds.has(s.id))
         ];
-        setJourneys(mockJourneys);
-        await AsyncStorage.setItem('journeys', JSON.stringify(mockJourneys));
+        
+        response = { data: { shipments: allShipments } };
+      } else if (user.role === 'admin') {
+        // Load all shipments for admin
+        const adminResponse = await apiService.getAllShipments();
+        response = { data: { shipments: adminResponse.shipments } };
+      } else {
+        throw new Error('Invalid user role');
       }
-    } catch (error) {
-      console.error('Error loading journeys:', error);
+
+      const mappedJourneys = response.data.shipments.map(mapShipmentToJourney);
+      setJourneys(mappedJourneys);
+    } catch (err) {
+      console.error('Error loading journeys:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load journeys');
     } finally {
       setLoading(false);
     }
   };
 
   const assignJourney = async (journeyId: string, driverId: string, driverName: string) => {
-    const updatedJourneys = journeys.map(journey =>
-      journey.id === journeyId
-        ? {
-            ...journey,
-            driverId,
-            driverName,
-            status: 'assigned' as const,
-            assignedAt: new Date().toISOString(),
-          }
-        : journey
-    );
-    setJourneys(updatedJourneys);
-    await AsyncStorage.setItem('journeys', JSON.stringify(updatedJourneys));
+    try {
+      if (user?.role === 'admin') {
+        // Admin assigns shipment
+        await apiService.assignShipment(parseInt(journeyId), 'driver', parseInt(driverId));
+      } else if (user?.role === 'driver' || user?.role === 'trucker') {
+        // Driver/trucker accepts shipment
+        await apiService.acceptShipment(parseInt(journeyId));
+      }
+      
+      // Reload journeys to get updated data
+      await loadJourneys();
+    } catch (err) {
+      console.error('Error assigning journey:', err);
+      throw err;
+    }
   };
 
   const updateJourneyStatus = async (journeyId: string, status: Journey['status']) => {
-    const updatedJourneys = journeys.map(journey => {
-      if (journey.id === journeyId) {
-        const updates: Partial<Journey> = { status };
-        
-        if (status === 'in_progress') {
-          updates.startedAt = new Date().toISOString();
-        } else if (status === 'completed') {
-          updates.completedAt = new Date().toISOString();
-        }
-        
-        return { ...journey, ...updates };
+    try {
+      // Map Journey status back to API status
+      const apiStatusMap: Record<Journey['status'], string> = {
+        'pending': 'pending',
+        'assigned': 'accepted',
+        'in_progress': 'picked_up', // Default to picked_up, can be updated to in_transit later
+        'completed': 'delivered',
+        'cancelled': 'cancelled',
+      };
+
+      const apiStatus = apiStatusMap[status];
+      if (!apiStatus || apiStatus === 'pending' || apiStatus === 'accepted') {
+        throw new Error('Invalid status transition');
       }
-      return journey;
-    });
-    
-    setJourneys(updatedJourneys);
-    await AsyncStorage.setItem('journeys', JSON.stringify(updatedJourneys));
+
+      await apiService.updateShipmentStatus(
+        parseInt(journeyId),
+        apiStatus as 'picked_up' | 'in_transit' | 'delivered' | 'cancelled'
+      );
+      
+      // Reload journeys to get updated data
+      await loadJourneys();
+    } catch (err) {
+      console.error('Error updating journey status:', err);
+      throw err;
+    }
+  };
+
+  const createJourney = async (journeyData: {
+    pickupLocation: string;
+    dropLocation: string;
+    cargoType: string;
+    description: string;
+    vehicleType: 'truck' | 'van' | 'pickup' | 'trailer' | 'container';
+    cargoWeight?: number;
+    cargoSize?: string;
+    budget?: number;
+  }) => {
+    try {
+      await apiService.createShipment(journeyData);
+      // Reload journeys to include the new one
+      await loadJourneys();
+    } catch (err) {
+      console.error('Error creating journey:', err);
+      throw err;
+    }
+  };
+
+  const cancelJourney = async (journeyId: string) => {
+    try {
+      await apiService.cancelShipment(parseInt(journeyId));
+      // Reload journeys to get updated data
+      await loadJourneys();
+    } catch (err) {
+      console.error('Error cancelling journey:', err);
+      throw err;
+    }
   };
 
   return {
     journeys,
     loading,
+    error,
     assignJourney,
     updateJourneyStatus,
+    createJourney,
+    cancelJourney,
     reload: loadJourneys,
   };
 }

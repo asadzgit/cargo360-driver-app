@@ -5,27 +5,31 @@ import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
 
 export default function DriverLoginScreen() {
-  const [driverId, setDriverId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { loginDriver } = useAuth();
   const router = useRouter();
 
   const handleLogin = async () => {
-    if (!driverId || !password) {
+    if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
     try {
-      await loginDriver(driverId, password);
+      await loginDriver(email, password);
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      Alert.alert('Login Failed', error instanceof Error ? error.message : 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSignup = () => {
+    router.push('/auth/driver-signup');
   };
 
   return (
@@ -39,13 +43,14 @@ export default function DriverLoginScreen() {
         <Text style={styles.subtitle}>Enter your driver credentials to continue</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Driver ID</Text>
+          <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
-            value={driverId}
-            onChangeText={setDriverId}
-            placeholder="Enter your driver ID"
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
             autoCapitalize="none"
+            keyboardType="email-address"
           />
         </View>
 
@@ -72,8 +77,11 @@ export default function DriverLoginScreen() {
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpText}>
-            Don't have driver credentials? Contact your broker.
+            Don't have a driver account?
           </Text>
+          <TouchableOpacity onPress={handleSignup} style={styles.signupButton}>
+            <Text style={styles.signupButtonText}>Sign up here</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -150,5 +158,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  signupButton: {
+    marginTop: 8,
+  },
+  signupButtonText: {
+    fontSize: 14,
+    color: '#059669',
+    textDecorationLine: 'underline',
   },
 });

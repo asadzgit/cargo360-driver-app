@@ -2,18 +2,28 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
+import { useRouter } from 'expo-router';
 import { Users, Truck, MapPin, Clock } from 'lucide-react-native';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { drivers } = useDrivers();
   const { journeys } = useJourneys();
+  const router = useRouter();
 
   const isBroker = user?.role === 'broker';
 
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
+
+  // For drivers, filter journeys by their ID and use proper status mapping
+  const driverActiveJourneys = journeys.filter(j => 
+    j.driverId === user?.id?.toString() && j.status === 'in_progress'
+  );
+  const driverCompletedJourneys = journeys.filter(j => 
+    j.driverId === user?.id?.toString() && j.status === 'completed'
+  );
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -52,7 +62,7 @@ export default function DashboardScreen() {
             <View style={[styles.statCard, styles.secondaryCard]}>
               <Truck size={32} color="#ffffff" />
               <Text style={styles.statNumber}>
-                {journeys.filter(j => j.driverId === user?.id && j.status === 'in_progress').length}
+                {driverActiveJourneys.length}
               </Text>
               <Text style={styles.statLabel}>Active Journey</Text>
             </View>
@@ -60,7 +70,7 @@ export default function DashboardScreen() {
             <View style={[styles.statCard, styles.primaryCard]}>
               <MapPin size={32} color="#ffffff" />
               <Text style={styles.statNumber}>
-                {journeys.filter(j => j.driverId === user?.id && j.status === 'completed').length}
+                {driverCompletedJourneys.length}
               </Text>
               <Text style={styles.statLabel}>Completed</Text>
             </View>
@@ -88,20 +98,24 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Recent Activity</Text>
         <View style={styles.activityList}>
           {journeys.slice(0, 3).map((journey, index) => (
-            <View key={index} style={styles.activityItem}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.activityItem}
+              onPress={() => router.push(`/(tabs)/journeys/${journey.id}`)}
+            >
               <View style={styles.activityIcon}>
                 <Truck size={16} color={isBroker ? '#2563eb' : '#059669'} />
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>
-                  Journey {journey.id.slice(0, 8)}
+                  Journey #{journey.id}
                 </Text>
                 <Text style={styles.activitySubtitle}>
                   {journey.fromLocation} → {journey.toLocation}
                 </Text>
                 <Text style={styles.activityTime}>Status: {journey.status}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
