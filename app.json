@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "cargo360-driver-app",
+    "name": "Cargo360 Connect",
     "slug": "cargo360-driver-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/cargo-icon.png",
     "scheme": "cargo360driver",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -35,7 +35,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/cargo-icon.png"
     },
     "plugins": [
       [

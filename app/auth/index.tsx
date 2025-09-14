@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Truck, Users } from 'lucide-react-native';
 
@@ -8,9 +8,13 @@ export default function AuthIndexScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Truck size={64} color="#2563eb" />
-        <Text style={styles.title}>TruckTracker Pro</Text>
-        <Text style={styles.subtitle}>Choose your role to continue</Text>
+        <Image 
+          source={require('../../assets/images/cargo-icon.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>Cargo360 Connect</Text>
+        {/* <Text style={styles.subtitle}>Choose your role to continue</Text> */}
       </View>
 
       <View style={styles.buttonContainer}>
@@ -52,6 +56,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingBottom: 32,
+  },
+  logo: {
+    width: 128,
+    height: 128,
   },
   title: {
     fontSize: 32,
