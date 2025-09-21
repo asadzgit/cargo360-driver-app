@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map } from '
 import { useJourneys } from '@/hooks/useJourneys';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { apiService } from '@/services/api';
+import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
 
 export default function JourneyDetailScreen() {
   const { user } = useAuth();
@@ -162,9 +163,6 @@ export default function JourneyDetailScreen() {
             text: 'Grant Permission', 
             onPress: async () => {
               await requestLocationPermission();
-              if (hasPermission) {
-                handleStartJourney();
-              }
             }
           }
         ]
@@ -185,17 +183,21 @@ export default function JourneyDetailScreen() {
       const updatedJourney = {
         ...journey,
         status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        apiStatus: updatedShipment.status,
         startedAt: updatedShipment.updatedAt,
       };
       
       setJourney(updatedJourney);
       
-      // Send initial location immediately
+      // Send initial location immediately (foreground)
       await sendLocationNow();
+
+      // Start background tracking to ensure hourly updates even in background
+      await startBackgroundLocationTracking(parseInt(journey.id));
       
       Alert.alert(
         'Journey Started',
-        'Your journey has been started successfully. GPS tracking is now active and will send your location every 15 minutes.',
+        'Your journey has been started. GPS tracking will continue hourly even in the background.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -223,11 +225,15 @@ export default function JourneyDetailScreen() {
         'delivered'
       );
 
+      // Stop background tracking
+      await stopBackgroundLocationTracking();
+
       // Update local journey state with new data
       const updatedShipment = response.data.shipment;
       const updatedJourney = {
         ...journey,
         status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        apiStatus: updatedShipment.status,
         completedAt: updatedShipment.updatedAt,
       };
       
@@ -235,7 +241,7 @@ export default function JourneyDetailScreen() {
       
       Alert.alert(
         'Journey Completed',
-        'Congratulations! Your journey has been completed successfully. GPS tracking has been stopped.',
+        'Your journey has been completed. GPS background tracking has been stopped.',
         [{ text: 'OK' }]
       );
     } catch (error) {

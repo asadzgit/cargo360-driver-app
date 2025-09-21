@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider } from '@/context/AuthContext';
+// Import background location task so TaskManager.defineTask is registered on startup
+import '@/tasks/locationTrackingTask';
 
 export default function RootLayout() {
   useFrameworkReady();

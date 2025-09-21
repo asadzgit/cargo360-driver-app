@@ -121,13 +121,13 @@ export const useLocationTracking = ({ shipmentId, isTracking }: UseLocationTrack
       await sendLocationToServer(initialLocation);
     }
 
-    // Set up interval to send location every 15 minutes (900,000 ms)
+    // Set up interval to send location every 5 seconds (TEST ONLY)
     intervalRef.current = setInterval(async () => {
       const location = await getCurrentLocation();
       if (location) {
         await sendLocationToServer(location);
       }
-    }, 15 * 60 * 1000); // 15 minutes
+    }, 5 * 1000); // 5 seconds (TEST)
   };
 
   const stopLocationTracking = () => {
