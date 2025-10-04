@@ -9,7 +9,7 @@ export default function JourneysScreen() {
   const { journeys } = useJourneys();
   const router = useRouter();
 
-  const isBroker = user?.role === 'broker';
+  const isBroker = user?.role === 'trucker';
   const userJourneys = journeys 
   
   // const userJourneys = isBroker 

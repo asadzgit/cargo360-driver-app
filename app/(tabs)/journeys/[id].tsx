@@ -313,7 +313,7 @@ export default function JourneyDetailScreen() {
     );
   }
 
-  const isBroker = user?.role === 'broker' || user?.role === 'customer';
+  const isBroker = user?.role === 'trucker' || user?.role === 'customer';
   const isAssignedDriver = user?.role === 'driver' && journey.driverId === user.id.toString();
 
   return (

@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // For truckers and drivers, just show success message
         // They'll need to wait for approval
-        console.log('Registration successful. Waiting for approval.');
+        console.log('Registration successful.');
       }
     } catch (error) {
       console.error('Registration error:', error);

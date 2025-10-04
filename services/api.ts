@@ -18,10 +18,8 @@ export interface User {
 export interface LoginResponse {
   message: string;
   user: User;
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface Shipment {
@@ -108,12 +106,17 @@ class ApiService {
     return response;
   }
 
+  // convenience helper: phone login (phone in "email" field per API spec)
+  async loginWithPhone(phone: string, password: string): Promise<LoginResponse> {
+    return this.login(phone, password);
+  }
+
   async signup(userData: {
     name: string;
     email: string;
     phone: string;
     password: string;
-    role: 'customer' | 'trucker' | 'admin' | 'driver';
+    role: 'customer' | 'trucker' | 'admin' | 'driver' | 'moderator';
   }): Promise<{ message: string; user: User }> {
     return this.makeRequest('/auth/signup', {
       method: 'POST',
@@ -280,6 +283,20 @@ class ApiService {
       method: 'PATCH',
       body: JSON.stringify({ assignment, userId }),
     });
+  }
+  async createDriver(driverData: {
+    name: string;
+    phone: string;
+    password: string;
+    email?: string;
+  }): Promise<{ message: string; user: User }> {
+    return this.makeRequest('/auth/create-driver', {
+      body: JSON.stringify(driverData),
+    });
+  }
+
+  async getMyDrivers(): Promise<any> {
+    return this.makeRequest('/auth/my-drivers');
   }
 }
 

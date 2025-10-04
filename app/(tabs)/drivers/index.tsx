@@ -10,7 +10,7 @@ export default function DriversScreen() {
   const { drivers, addDriver } = useDrivers();
   const router = useRouter();
 
-  if (user?.role !== 'broker') {
+  if (user?.role !== 'trucker') {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Access denied. Broker access required.</Text>

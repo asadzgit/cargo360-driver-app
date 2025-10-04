@@ -4,7 +4,7 @@ import { Chrome as Home, Users, Truck, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   const { user } = useAuth();
-  const isBroker = user?.role === 'broker';
+  const isBroker = user?.role === 'trucker';
   const isDriver = user?.role === 'driver';
 
   return (

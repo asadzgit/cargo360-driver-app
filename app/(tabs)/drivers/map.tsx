@@ -142,7 +142,7 @@ export default function DriversMapScreen() {
     }
   };
 
-  if (user?.role !== 'broker') {
+  if (user?.role !== 'trucker') {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Broker access required</Text>

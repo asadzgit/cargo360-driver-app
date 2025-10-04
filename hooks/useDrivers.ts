@@ -78,8 +78,16 @@ export function useDrivers() {
         });
         
         setDrivers(driversList);
+      } else if (user.role === 'trucker' || user.role === 'moderator') {
+        // Trucker/Moderator: list their drivers via API
+        const res: any = await apiService.getMyDrivers();
+        // Support multiple possible response shapes
+        const driverUsers: User[] = Array.isArray(res)
+          ? res
+          : res?.drivers || res?.users || res?.data?.drivers || res?.data?.users || [];
+        setDrivers(driverUsers.map(mapUserToDriver));
       } else {
-        // For drivers/truckers, they only see themselves
+        // For drivers, they only see themselves
         setDrivers([mapUserToDriver(user)]);
       }
     } catch (err) {
@@ -97,9 +105,12 @@ export function useDrivers() {
     password: string;
   }) => {
     try {
-      const response = await apiService.signup({
-        ...driverData,
-        role: 'driver',
+      // Use broker/trucker endpoint to create driver (auto-verified)
+      const response = await apiService.createDriver({
+        name: driverData.name,
+        phone: driverData.phone,
+        password: driverData.password,
+        email: driverData.email,
       });
       
       // Reload drivers to include the new one

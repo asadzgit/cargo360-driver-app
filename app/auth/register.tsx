@@ -5,16 +5,18 @@ import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
 
 export default function RegisterScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [companyName, setCompanyName] = useState('');
+  // const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword || !companyName) {
+    // if (!email || !password || !confirmPassword || !companyName) {
+    if (!name || !email || !password || !confirmPassword ) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -31,8 +33,8 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      debugger;
-      await register(email, password, companyName);
+      // await register(email, password, companyName);
+      await register({name, email, password, role: 'trucker'});
       router.replace('/(tabs)');
     } catch (error) {
       Alert.alert('Registration Failed', 'Please try again.');
@@ -51,18 +53,30 @@ export default function RegisterScreen() {
         <Text style={styles.title}>Broker Registration</Text>
         <Text style={styles.subtitle}>Create your broker account to get started</Text>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Company Name</Text>
-          <TextInput
+        {/* <View style={styles.inputContainer}>
+          <Text style={styles.label}>Company Name</Text> */}
+          {/* <TextInput
             style={styles.input}
             value={companyName}
             onChangeText={setCompanyName}
             placeholder="Enter company name"
+          /> */}
+        {/* </View> */}
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Name*</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter your name"
+            keyboardType="default"
+            autoCapitalize="none"
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>Email*</Text>
           <TextInput
             style={styles.input}
             value={email}
@@ -74,7 +88,7 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>Password*</Text>
           <TextInput
             style={styles.input}
             value={password}
@@ -85,7 +99,7 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirm Password</Text>
+          <Text style={styles.label}>Confirm Password*</Text>
           <TextInput
             style={styles.input}
             value={confirmPassword}

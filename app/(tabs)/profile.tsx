@@ -25,7 +25,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const isBroker = user?.role === 'broker';
+  const isBroker = user?.role === 'trucker';
 
   return (
     <View style={styles.container}>

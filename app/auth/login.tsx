@@ -19,7 +19,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await login(email, password, 'broker');
+      await login(email, password, 'trucker');
       router.replace('/(tabs)');
     } catch (error) {
       Alert.alert('Login Failed', 'Invalid credentials. Please try again.');

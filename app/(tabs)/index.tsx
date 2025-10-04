@@ -11,7 +11,7 @@ export default function DashboardScreen() {
   const { journeys } = useJourneys();
   const router = useRouter();
 
-  const isBroker = user?.role === 'broker';
+  const isBroker = user?.role === 'trucker';
 
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
@@ -32,7 +32,7 @@ export default function DashboardScreen() {
           {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
         </Text>
         <Text style={styles.welcomeText}>
-          Welcome back, {isBroker ? user?.companyName : user?.name}
+          Welcome back, {user?.name}
         </Text>
       </View>
 
