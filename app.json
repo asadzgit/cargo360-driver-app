@@ -18,7 +18,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "This app needs location access to track delivery progress and share real-time updates with clients.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs background location access to track delivery progress when the app is not active."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs background location access to track delivery progress when the app is not active.",
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
