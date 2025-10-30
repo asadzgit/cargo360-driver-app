@@ -101,22 +101,14 @@ export function useDrivers() {
   const addDriver = async (driverData: {
     name: string;
     phone: string;
-    email: string;
-    password: string;
   }) => {
     try {
-      // Use broker/trucker endpoint to create driver (auto-verified)
-      const response = await apiService.createDriver({
+      const res = await apiService.addDriverByBroker({
         name: driverData.name,
         phone: driverData.phone,
-        password: driverData.password,
-        email: driverData.email,
       });
-      
-      // Reload drivers to include the new one
       await loadDrivers();
-      
-      return mapUserToDriver(response.user);
+      return res;
     } catch (err) {
       console.error('Error adding driver:', err);
       throw err;

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService, User as ApiUser } from '@/services/api';
-
+// import { stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
 interface User {
   id: number;
   email: string;
@@ -29,6 +29,8 @@ interface AuthContextType {
     role: 'customer' | 'trucker' | 'driver';
   }) => Promise<void>;
   logout: () => Promise<void>;
+  // phone-based login with PIN
+  phoneLogin: (phone: string, pin: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,6 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Phone-based login via PIN
+  const phoneLogin = async (phone: string, pin: string) => {
+    try {
+      const response = await apiService.phoneLogin({ phone, pin });
+      setUser(response.user);
+    } catch (error) {
+      console.error('Phone login error:', error);
+      throw error;
+    }
+  };
+
+
   const register = async (userData: {
     name: string;
     email: string;
@@ -144,16 +158,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = async () => {
-    try {
-      await apiService.logout();
-      setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Clear user state even if API call fails
-      setUser(null);
-    }
-  };
+const logout = async () => {
+  try {
+    await Promise.all([
+      AsyncStorage.multiRemove([
+        'accessToken',
+        'refreshToken',
+        'user',
+        // 'tracking.currentShipmentId',
+        // 'tracking.lastSentAt',
+      ]),
+    ]);
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    setUser(null);
+  }
+};
 
   return (
     <AuthContext.Provider value={{
@@ -163,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginDriver,
       register,
       logout,
+      phoneLogin,
     }}>
       {children}
     </AuthContext.Provider>

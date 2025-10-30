@@ -32,29 +32,29 @@ export default function DashboardScreen() {
           {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
         </Text>
         <Text style={styles.welcomeText}>
-          Welcome back, {user?.name}
+          {/* Welcome back, {user?.name} */}
         </Text>
       </View>
 
       <View style={styles.statsContainer}>
         {isBroker ? (
           <>
-            <View style={[styles.statCard, styles.primaryCard]}>
+            {/* <View style={[styles.statCard, styles.primaryCard]}>
               <Users size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{activeDrivers.length}</Text>
               <Text style={styles.statLabel}>Active Drivers</Text>
-            </View>
+            </View> */}
 
             <View style={[styles.statCard, styles.secondaryCard]}>
               <Truck size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{activeJourneys.length}</Text>
-              <Text style={styles.statLabel}>Active Journeys</Text>
+              <Text style={styles.statLabel}>Active Orgers</Text>
             </View>
 
             <View style={[styles.statCard, styles.warningCard]}>
               <Clock size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{pendingJourneys.length}</Text>
-              <Text style={styles.statLabel}>Pending Assignments</Text>
+              <Text style={styles.statLabel}>Pending Orders</Text>
             </View>
           </>
         ) : (
@@ -64,7 +64,7 @@ export default function DashboardScreen() {
               <Text style={styles.statNumber}>
                 {driverActiveJourneys.length}
               </Text>
-              <Text style={styles.statLabel}>Active Journey</Text>
+              <Text style={styles.statLabel}>Active Orders</Text>
             </View>
 
             <View style={[styles.statCard, styles.primaryCard]}>
@@ -82,13 +82,19 @@ export default function DashboardScreen() {
         <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionGrid}>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/drivers/add')}
+            >
               <Users size={24} color="#2563eb" />
               <Text style={styles.actionText}>Add Driver</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/(tabs)/journeys/assign')}
+            >
               <Truck size={24} color="#2563eb" />
-              <Text style={styles.actionText}>Assign Journey</Text>
+              <Text style={styles.actionText}>Assign Order</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -108,7 +114,7 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>
-                  Journey #{journey.id}
+                  Order C360-PK-#{journey.id}
                 </Text>
                 <Text style={styles.activitySubtitle}>
                   {journey.fromLocation} → {journey.toLocation}

@@ -107,9 +107,9 @@ class ApiService {
   }
 
   // convenience helper: phone login (phone in "email" field per API spec)
-  async loginWithPhone(phone: string, password: string): Promise<LoginResponse> {
-    return this.login(phone, password);
-  }
+  // async loginWithPhone(phone: string, password: string): Promise<LoginResponse> {
+  //   return this.login(phone, password);
+  // }
 
   async signup(userData: {
     name: string;
@@ -284,6 +284,106 @@ class ApiService {
       body: JSON.stringify({ assignment, userId }),
     });
   }
+  // async createDriver(driverData: {
+  //   name: string;
+  //   phone: string;
+  //   password: string;
+  //   email?: string;
+  // }): Promise<{ message: string; user: User }> {
+  //   return this.makeRequest('/auth/create-driver', {
+  //     body: JSON.stringify(driverData),
+  //   });
+  // }
+
+  async getMyDrivers(): Promise<any> {
+    return this.makeRequest('/users/drivers');
+  }
+
+    // Authentication endpoints
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const response = await this.makeRequest<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+
+    // Store tokens
+    await AsyncStorage.setItem('accessToken', response.accessToken);
+    await AsyncStorage.setItem('refreshToken', response.refreshToken);
+    await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+    return response;
+  }
+
+  // convenience helper: phone login (phone in "email" field per API spec)
+  async loginWithPhone(phone: string, password: string): Promise<LoginResponse> {
+    return this.login(phone, password);
+  }
+
+  // Phone-based auth endpoints
+  async checkPhone(params: { phone: string; role: 'trucker' | 'driver' }): Promise<
+    | { exists: false; nextStep: 'signup_required' }
+    | { exists: true; userId: string; isPhoneVerified: false; hasPin: false; nextStep: 'verify_otp'; message: string }
+    | { exists: true; userId: string; isPhoneVerified: true; hasPin: true; nextStep: 'enter_pin' }
+    | { exists: true; userId: string; isPhoneVerified: true; hasPin: false; nextStep: 'set_pin' }
+  > {
+    return this.makeRequest('/auth/phone/check', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async phoneSignup(params: { name: string; phone: string; role: 'trucker' | 'driver' }): Promise<{ userId: string; nextStep: 'verify_otp'; message: string }> {
+    return this.makeRequest('/auth/phone/signup', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async verifyOtp(params: { phone: string; otp: string }): Promise<{ success: true; nextStep: 'set_pin' | 'enter_pin' }> {
+    return this.makeRequest('/auth/phone/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async setPin(params: { phone: string; pin: string }): Promise<{ success: true; nextStep: 'enter_pin' }> {
+    return this.makeRequest('/auth/phone/set-pin', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  async phoneLogin(params: { phone: string; pin: string }): Promise<LoginResponse> {
+    const response = await this.makeRequest<LoginResponse>('/auth/phone/login', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+
+    // Store tokens and user
+    await AsyncStorage.setItem('accessToken', response.accessToken);
+    await AsyncStorage.setItem('refreshToken', response.refreshToken);
+    await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+    return response;
+  }
+
+  async resendOtp(params: { phone: string }): Promise<{ success: true; message: string }> {
+    return this.makeRequest('/auth/phone/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // async assignShipment(
+  //   shipmentId: number,
+  //   assignment: 'trucker' | 'driver',
+  //   userId: number
+  // ): Promise<ApiResponse<{ shipment: Shipment }>> {
+  //   return this.makeRequest(`/admin/shipments/${shipmentId}/assign`, {
+  //     method: 'PATCH',
+  //     body: JSON.stringify({ assignment, userId }),
+  //   });
+  // }
   async createDriver(driverData: {
     name: string;
     phone: string;
@@ -295,8 +395,33 @@ class ApiService {
     });
   }
 
-  async getMyDrivers(): Promise<any> {
-    return this.makeRequest('/auth/my-drivers');
+  // Broker adds driver (hierarchy)
+  async addDriverByBroker(params: { name: string; phone: string }): Promise<{ driverId: string; nextStep: 'verify_otp'; message: string }> {
+    return this.makeRequest('/users/drivers', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+  async updateDriverShipmentStatus(
+    shipmentId: number,
+    status: 'picked_up' | 'accepted' | 'in_transit' | 'delivered' | 'cancelled'
+  ): Promise<ApiResponse<{ shipment: Shipment }>> {
+    return this.makeRequest(`/shipments/${shipmentId}/status-driver`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // Broker assigns a journey(shipment) to a specific driver
+  // NOTE: Confirm backend route; placeholder assumes PATCH /shipments/:id/assign-driver
+  async assignJourneyToDriver(
+    shipmentId: number,
+    driverId: number
+  ): Promise<ApiResponse<{ shipment: Shipment }>> {
+    return this.makeRequest(`/shipments/${shipmentId}/assign-driver`, {
+      method: 'PATCH',
+      body: JSON.stringify({ driverId }),
+    });
   }
 }
 

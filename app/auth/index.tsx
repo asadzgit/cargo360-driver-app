@@ -1,109 +1,104 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Truck, Users } from 'lucide-react-native';
+import { apiService } from '@/services/api';
 
-export default function AuthIndexScreen() {
+export default function PhoneEntryScreen() {
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<'trucker' | 'driver'>('driver');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleContinue = async () => {
+    if (!phone) {
+      Alert.alert('Missing phone', 'Please enter your phone number');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await apiService.checkPhone({ phone, role });
+      switch (res.nextStep) {
+        case 'signup_required':
+          router.push({ pathname: '/auth/phone-signup', params: { phone, role } });
+          break;
+        case 'verify_otp':
+          router.push({ pathname: '/auth/verify-otp', params: { phone } });
+          break;
+        case 'set_pin':
+          router.push({ pathname: '/auth/set-pin', params: { phone } });
+          break;
+        case 'enter_pin':
+          router.push({ pathname: '/auth/enter-pin', params: { phone } });
+          break;
+        default:
+          Alert.alert('Unexpected response', 'Please try again.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to check phone.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/images/cargo-icon.png')} 
-          style={styles.logo}
-          resizeMode="contain"
+      <Text style={styles.title}>Sign in with phone</Text>
+      <Text style={styles.subtitle}>Enter your phone to continue</Text>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Phone</Text>
+        <TextInput
+          style={styles.input}
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="e.g. +92XXXXXXXXXX"
+          keyboardType="phone-pad"
+          autoCapitalize="none"
         />
-        <Text style={styles.title}>Cargo360 Connect</Text>
-        {/* <Text style={styles.subtitle}>Choose your role to continue</Text> */}
       </View>
 
-      <View style={styles.buttonContainer}>
+      <View style={styles.roleSwitcher}>
         <TouchableOpacity
-          style={[styles.button, styles.brokerButton]}
-          onPress={() => router.push('/auth/login')}
+          style={[styles.roleButton, role === 'driver' && styles.roleButtonActive]}
+          onPress={() => setRole('driver')}
         >
-          <Users size={24} color="#ffffff" />
-          <Text style={styles.buttonText}>Broker Login</Text>
+          <Text style={[styles.roleText, role === 'driver' && styles.roleTextActive]}>Driver</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.button, styles.driverButton]}
-          onPress={() => router.push('/auth/driver-login')}
+          style={[styles.roleButton, role === 'trucker' && styles.roleButtonActive]}
+          onPress={() => setRole('trucker')}
         >
-          <Truck size={24} color="#ffffff" />
-          <Text style={styles.buttonText}>Driver Login</Text>
+          <Text style={[styles.roleText, role === 'trucker' && styles.roleTextActive]}>Broker</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.registerLink}
-        onPress={() => router.push('/auth/register')}
-      >
-        <Text style={styles.registerText}>New broker? Register here</Text>
+      <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={handleContinue} disabled={loading}>
+        <Text style={styles.ctaText}>{loading ? 'Please wait...' : 'Continue'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('/auth/login')} style={styles.altLink}>
+        <Text style={styles.altText}>Use email/password (broker)</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 24,
-  },
-  header: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 32,
-  },
-  logo: {
-    width: 128,
-    height: 128,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-  buttonContainer: {
-    gap: 16,
-    marginBottom: 32,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 12,
-  },
-  brokerButton: {
-    backgroundColor: '#2563eb',
-  },
-  driverButton: {
-    backgroundColor: '#059669',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  registerLink: {
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  registerText: {
-    color: '#2563eb',
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 100 },
+  title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },
+  subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
+  inputContainer: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
+  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff' },
+  roleSwitcher: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 16 },
+  roleButton: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center', backgroundColor: '#fff' },
+  roleButtonActive: { backgroundColor: '#e0f2fe', borderColor: '#38bdf8' },
+  roleText: { color: '#374151', fontWeight: '500' },
+  roleTextActive: { color: '#0ea5e9' },
+  cta: { backgroundColor: '#2563eb', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+  ctaText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  disabled: { opacity: 0.6 },
+  altLink: { alignItems: 'center', marginTop: 20 },
+  altText: { color: '#2563eb' },
 });

@@ -44,16 +44,17 @@ export default function DriversScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Drivers</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.mapButton} onPress={() => router.push('/drivers/map')}>
-            <Map size={20} color="#ffffff" />
-            <Text style={styles.mapButtonText}>Live Map</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
-            <Plus size={20} color="#ffffff" />
-            <Text style={styles.addButtonText}>Add Driver</Text>
-          </TouchableOpacity>
-        </View>
+      </View>
+
+      <View style={styles.headerButtons}>
+        {/* <TouchableOpacity style={styles.mapButton} onPress={() => router.push('/drivers/map')}>
+          <Map size={20} color="#ffffff" />
+          <Text style={styles.mapButtonText}>Live Map</Text>
+        </TouchableOpacity> */}
+        <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
+          <Plus size={20} color="#ffffff" />
+          <Text style={styles.addButtonText}>Add Driver</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -62,7 +63,7 @@ export default function DriversScreen() {
             <User size={64} color="#cbd5e1" />
             <Text style={styles.emptyTitle}>No Drivers Yet</Text>
             <Text style={styles.emptySubtitle}>
-              Add your first driver to start managing assignments
+              Add your first driver to start managing orders
             </Text>
             <TouchableOpacity style={styles.emptyButton} onPress={handleAddDriver}>
               <Text style={styles.emptyButtonText}>Add Driver</Text>
@@ -114,20 +115,26 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
+    backgroundColor:'#024d9a',
+    borderBottomLeftRadius: 60,
+    borderBottomRightRadius: 60,
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#fff',
   },
   headerButtons: {
     flexDirection: 'row',
     gap: 12,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   mapButton: {
     flexDirection: 'row',
@@ -146,7 +153,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#024d9a',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

@@ -141,6 +141,20 @@ export function useJourneys() {
     }
   };
 
+  // Broker assigns a journey to a driver explicitly
+  const assignDriverToJourney = async (journeyId: string, driverId: string) => {
+    try {
+      if (user?.role !== 'trucker') {
+        throw new Error('Only brokers can assign drivers');
+      }
+      await apiService.assignJourneyToDriver(parseInt(journeyId), parseInt(driverId));
+      await loadJourneys();
+    } catch (err) {
+      console.error('Error assigning driver to journey:', err);
+      throw err;
+    }
+  };
+
   const updateJourneyStatus = async (journeyId: string, status: Journey['status']) => {
     try {
       // Map Journey status back to API status
@@ -210,5 +224,6 @@ export function useJourneys() {
     createJourney,
     cancelJourney,
     reload: loadJourneys,
+    assignDriverToJourney,
   };
 }

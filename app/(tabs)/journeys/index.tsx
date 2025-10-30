@@ -57,12 +57,12 @@ export default function JourneysScreen() {
           <View style={styles.emptyState}>
             <Truck size={64} color="#cbd5e1" />
             <Text style={styles.emptyTitle}>
-              {isBroker ? 'No Assignments Yet' : 'No Journeys Assigned'}
+              {isBroker ? 'No Orders Yet' : 'No Orders Assigned'}
             </Text>
             <Text style={styles.emptySubtitle}>
               {isBroker 
-                ? 'Create your first journey assignment for drivers'
-                : 'Wait for journey assignments from your broker'
+                ? 'Create your first order assignment for drivers'
+                : 'Wait for order assignments from your broker'
               }
             </Text>
           </View>

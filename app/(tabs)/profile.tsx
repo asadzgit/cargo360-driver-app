@@ -13,14 +13,21 @@ export default function ProfileScreen() {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
+        {
+          text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            router.replace('/auth');
-          }
-        }
+            try {
+              console.log('Logout called');
+              await logout();
+            } catch (e) {
+              console.error('Logout failed:', e);
+            } finally {
+              // Route to root; index screen will redirect to /auth when user is null
+              router.replace('/auth/login');
+            }
+          },
+        },
       ]
     );
   };

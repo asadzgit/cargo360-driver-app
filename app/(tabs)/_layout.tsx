@@ -51,7 +51,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="journeys"
         options={{
-          title: isBroker ? 'Assignments' : 'Journeys',
+          title: isBroker ? 'Orders' : 'Orders',
           tabBarIcon: ({ size, color }) => (
             <Truck size={size} color={color} />
           ),

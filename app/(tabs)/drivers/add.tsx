@@ -7,29 +7,26 @@ import { ArrowLeft } from 'lucide-react-native';
 export default function AddDriverScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [licenseNumber, setLicenseNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const { addDriver } = useDrivers();
   const router = useRouter();
 
   const handleAddDriver = async () => {
-    if (!name || !phone || !licenseNumber) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!name || !phone) {
+      Alert.alert('Error', 'Please provide driver name and phone number');
       return;
     }
 
     setLoading(true);
     try {
-      await addDriver({
-        name,
-        phone,
-        licenseNumber,
-      });
-      Alert.alert('Success', 'Driver added successfully!', [
+      const res = await addDriver({ name, phone });
+      const message = (res as any)?.message || 'Driver added and OTP sent.';
+      Alert.alert('Success', message, [
         { text: 'OK', onPress: () => router.back() }
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add driver. Please try again.');
+    } catch (error: any) {
+      const msg = error?.message || 'Failed to add driver. Please try again.';
+      Alert.alert('Error', error);
     } finally {
       setLoading(false);
     }
@@ -39,7 +36,7 @@ export default function AddDriverScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#64748b" />
+          <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.title}>Add New Driver</Text>
       </View>
@@ -61,19 +58,9 @@ export default function AddDriverScreen() {
             style={styles.input}
             value={phone}
             onChangeText={setPhone}
-            placeholder="Enter phone number"
+            placeholder="Enter phone number (e.g. +923001112223)"
             keyboardType="phone-pad"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>License Number</Text>
-          <TextInput
-            style={styles.input}
-            value={licenseNumber}
-            onChangeText={setLicenseNumber}
-            placeholder="Enter license number"
-            autoCapitalize="characters"
+            autoCapitalize="none"
           />
         </View>
 
@@ -102,15 +89,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
+    backgroundColor:'#024d9a',
+    borderBottomLeftRadius: 60,
+    borderBottomRightRadius: 60,
+    marginBottom: 10,
   },
   backButton: {
     padding: 8,
     marginRight: 16,
+    color:'#fff',
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#fff',
   },
   form: {
     flex: 1,
@@ -135,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   addButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#024d9a',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',

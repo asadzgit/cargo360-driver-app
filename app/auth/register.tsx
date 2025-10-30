@@ -34,13 +34,29 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       // await register(email, password, companyName);
-      await register({name, email, password, role: 'trucker'});
+      await register({
+        name, email, password, role: 'trucker',
+        phone: ''
+      });
       router.replace('/(tabs)');
-    } catch (error) {
-      Alert.alert('Registration Failed', 'Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error: any) {
+      // Handle specific duplicate email case
+      const status = error?.status ?? error?.response?.status;
+      const data = error?.response?.data ?? error?.data;
+      const code = data?.code;
+      const apiMessage = data?.error ?? error?.message;
+
+      if (status === 409 || code === 4200 || /already exists/i.test(String(apiMessage))) {
+        Alert.alert(
+          'Email Already Registered',
+          'An account with this email already exists. Please log in or use a different email.'
+        );
+      } else {
+        Alert.alert('Registration Failed', apiMessage || 'Please try again.');
+      }
+     } finally {
+       setLoading(false);
+     }
   };
 
   return (
