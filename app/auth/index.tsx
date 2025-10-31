@@ -77,9 +77,9 @@ export default function PhoneEntryScreen() {
         <Text style={styles.ctaText}>{loading ? 'Please wait...' : 'Continue'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/auth/login')} style={styles.altLink}>
+      {/* <TouchableOpacity onPress={() => router.push('/auth/login')} style={styles.altLink}>
         <Text style={styles.altText}>Use email/password (broker)</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

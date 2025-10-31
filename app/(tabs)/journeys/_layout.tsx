@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 
 export default function JourneysLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false }} initialRouteName="index">
       <Stack.Screen name="index" />
       <Stack.Screen name="assign" />
       <Stack.Screen name="[id]" />

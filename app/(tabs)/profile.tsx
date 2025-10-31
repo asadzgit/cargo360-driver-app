@@ -47,11 +47,11 @@ export default function ProfileScreen() {
         
         <View style={styles.userInfo}>
           <Text style={styles.userName}>
-            {isBroker ? user?.companyName : user?.name}
+            {user?.name}
           </Text>
-          <Text style={styles.userRole}>
+          {/* <Text style={styles.userRole}>
             {isBroker ? 'Broker' : `Driver • ID: ${user?.driverId}`}
-          </Text>
+          </Text> */}
         </View>
       </View>
 
@@ -63,12 +63,12 @@ export default function ProfileScreen() {
             <User size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Email</Text>
-            <Text style={styles.detailValue}>{user?.email}</Text>
+            <Text style={styles.detailLabel}>Phone number</Text>
+            <Text style={styles.detailValue}>{user?.phone}</Text>
           </View>
         </View>
 
-        {isBroker ? (
+        {/* {isBroker ? (
           <View style={styles.detailItem}>
             <View style={styles.detailIcon}>
               <Building size={20} color="#64748b" />
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
               </View>
             </View>
           </>
-        )}
+        )} */}
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

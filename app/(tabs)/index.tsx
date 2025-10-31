@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-import { Users, Truck, MapPin, Clock } from 'lucide-react-native';
+import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -24,6 +25,65 @@ export default function DashboardScreen() {
   const driverCompletedJourneys = journeys.filter(j => 
     j.driverId === user?.id?.toString() && j.status === 'completed'
   );
+
+  const [showAddDriver, setShowAddDriver] = useState(false);
+  const [showAssignOrder, setShowAssignOrder] = useState(false);
+
+  // Add Driver modal state
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [addingDriver, setAddingDriver] = useState(false);
+
+  const { addDriver } = useDrivers();
+
+  const handleAddDriver = async () => {
+    if (!driverName || !driverPhone) {
+      Alert.alert('Error', 'Please provide driver name and phone number');
+      return;
+    }
+    setAddingDriver(true);
+    try {
+      const res: any = await addDriver({ name: driverName, phone: driverPhone });
+      const message = res?.message || 'Driver added and OTP sent.';
+      Alert.alert('Success', message);
+      setShowAddDriver(false);
+      setDriverName('');
+      setDriverPhone('');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to add driver.');
+    } finally {
+      setAddingDriver(false);
+    }
+  };
+
+  // Assign Order modal state
+  const [selectedJourneyId, setSelectedJourneyId] = useState<string | undefined>(undefined);
+  const [assigning, setAssigning] = useState(false);
+
+  const unassignedJourneys = useMemo(() =>
+    journeys.filter(j => j.status !== 'in_transit' || !j.driverId || j.driverName === 'Unassigned')
+  , [journeys]);
+
+  const selectableDrivers = useMemo(() => drivers, [drivers]);
+
+  const { assignDriverToJourney } = useJourneys();
+  const handleAssign = async (driverId: string) => {
+    if (!selectedJourneyId) {
+      Alert.alert('Select journey', 'Please select a journey first');
+      return;
+    }
+    setAssigning(true);
+    try {
+      await assignDriverToJourney(selectedJourneyId, driverId);
+      Alert.alert('Assigned', 'Driver has been assigned to the journey');
+      setShowAssignOrder(false);
+      setSelectedJourneyId(undefined);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to assign');
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -48,7 +108,7 @@ export default function DashboardScreen() {
             <View style={[styles.statCard, styles.secondaryCard]}>
               <Truck size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{activeJourneys.length}</Text>
-              <Text style={styles.statLabel}>Active Orgers</Text>
+              <Text style={styles.statLabel}>Active Orders</Text>
             </View>
 
             <View style={[styles.statCard, styles.warningCard]}>
@@ -84,14 +144,14 @@ export default function DashboardScreen() {
           <View style={styles.actionGrid}>
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => router.push('/(tabs)/drivers/add')}
+              onPress={() => setShowAddDriver(true)}
             >
               <Users size={24} color="#2563eb" />
               <Text style={styles.actionText}>Add Driver</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionCard}
-              onPress={() => router.push('/(tabs)/journeys/assign')}
+              onPress={() => setShowAssignOrder(true)}
             >
               <Truck size={24} color="#2563eb" />
               <Text style={styles.actionText}>Assign Order</Text>
@@ -125,6 +185,120 @@ export default function DashboardScreen() {
           ))}
         </View>
       </View>
+
+      {/* Add Driver Bottom Sheet */}
+      <Modal visible={showAddDriver} transparent animationType="slide" onRequestClose={() => setShowAddDriver(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAddDriver(false)}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Add New Driver</Text>
+              <TouchableOpacity onPress={() => setShowAddDriver(false)}>
+                <X size={22} color="#334155" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 12 }}>
+              <View>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={driverName}
+                  onChangeText={setDriverName}
+                  placeholder="Enter driver's full name"
+                />
+              </View>
+
+              <View>
+                <Text style={styles.label}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={driverPhone}
+                  onChangeText={setDriverPhone}
+                  placeholder="Enter phone number (e.g. +923001112223)"
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.primaryButton, addingDriver && styles.disabledButton]}
+                onPress={handleAddDriver}
+                disabled={addingDriver}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {addingDriver ? 'Adding Driver...' : 'Add Driver'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Assign Order Bottom Sheet */}
+      <Modal visible={showAssignOrder} transparent animationType="slide" onRequestClose={() => setShowAssignOrder(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssignOrder(false)}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Assign Driver</Text>
+              <TouchableOpacity onPress={() => setShowAssignOrder(false)}>
+                <X size={22} color="#334155" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+              {!selectedJourneyId && (
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Select a Journey</Text>
+                  {unassignedJourneys.length === 0 ? (
+                    <Text style={styles.muted}>No unassigned journeys</Text>
+                  ) : (
+                    unassignedJourneys.map(j => (
+                      <TouchableOpacity key={j.id} style={styles.listItem} onPress={() => setSelectedJourneyId(j.id)}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemTitle}>#{j.id} • {j.loadType}</Text>
+                          <View style={styles.inline}>
+                            <MapPin size={14} color="#059669" />
+                            <Text style={styles.itemSub}>From: {j.fromLocation}</Text>
+                          </View>
+                          <View style={styles.inline}>
+                            <MapPin size={14} color="#dc2626" />
+                            <Text style={styles.itemSub}>To: {j.toLocation}</Text>
+                          </View>
+                        </View>
+                        <Check size={18} color="#059669" />
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
+              )}
+
+              {selectedJourneyId && (
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Select a Driver</Text>
+                  {selectableDrivers.length === 0 ? (
+                    <Text style={styles.muted}>No drivers found. Add a driver first.</Text>
+                  ) : (
+                    selectableDrivers.map(d => (
+                      <TouchableOpacity key={d.id} style={styles.listItem} disabled={assigning} onPress={() => handleAssign(d.id)}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemTitle}>{d.name}</Text>
+                          <View style={styles.inline}>
+                            <Users size={14} color="#64748b" />
+                            <Text style={styles.itemSub}>ID: {d.id} • {d.phone}</Text>
+                          </View>
+                        </View>
+                        <Truck size={18} color="#2563eb" />
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -257,5 +431,103 @@ const styles = StyleSheet.create({
   activityTime: {
     fontSize: 12,
     color: '#94a3b8',
+  },
+  // Modal styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    paddingBottom: 24,
+    maxHeight: '85%',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sheetHandle: {
+    position: 'absolute',
+    top: -8,
+    alignSelf: 'center',
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e2e8f0',
+  },
+  sheetTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+  },
+  primaryButton: {
+    backgroundColor: '#024d9a',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 12,
+    marginBottom: 12,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    gap: 8,
+  },
+  inline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  itemSub: {
+    fontSize: 13,
+    color: '#64748b',
   },
 });

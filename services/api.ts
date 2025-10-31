@@ -299,21 +299,6 @@ class ApiService {
     return this.makeRequest('/users/drivers');
   }
 
-    // Authentication endpoints
-  async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await this.makeRequest<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-
-    // Store tokens
-    await AsyncStorage.setItem('accessToken', response.accessToken);
-    await AsyncStorage.setItem('refreshToken', response.refreshToken);
-    await AsyncStorage.setItem('user', JSON.stringify(response.user));
-
-    return response;
-  }
-
   // convenience helper: phone login (phone in "email" field per API spec)
   async loginWithPhone(phone: string, password: string): Promise<LoginResponse> {
     return this.login(phone, password);

@@ -44,12 +44,12 @@ export default function JourneysScreen() {
         <Text style={styles.title}>
           {isBroker ? 'Journey Assignments' : 'My Journeys'}
         </Text>
-        {isBroker && (
+        {/* {isBroker && (
           <TouchableOpacity style={styles.addButton} onPress={() => router.push('/journeys/assign')}>
             <Plus size={20} color="#ffffff" />
             <Text style={styles.addButtonText}>Assign</Text>
           </TouchableOpacity>
-        )}
+        )} */}
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -74,11 +74,11 @@ export default function JourneysScreen() {
                 style={styles.journeyCard}
                 onPress={() => {
                   if (isBroker) {
-                    router.push(`/(tabs)/journeys/${journey.id}`);
+                    router.push(`/journeys/${journey.id}`);
                   } else {
                     // For drivers, go directly to live tracking if assigned
                     if (journey.driverId === user?.id && journey.status !== 'completed') {
-                      router.push(`/(tabs)/journeys/live-tracking?journeyId=${journey.id}`);
+                      router.push(`/journeys/live-tracking?journeyId=${journey.id}`);
                     } else {
                       router.push(`/(tabs)/journeys/${journey.id}`);
                     }
