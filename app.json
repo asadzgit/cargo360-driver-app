@@ -8,7 +8,6 @@
     "scheme": "cargo360driver",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "sdkVersion": "52.0.0",
     "platforms": [
       "ios",
       "android",
@@ -24,12 +23,21 @@
     "android": {
       "package": "com.cargo360.driverapp",
       "versionCode": 1,
+      "targetSdkVersion": 35,
+      "compileSdkVersion": 35,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/cargo-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "foregroundServiceTypes": [
+        "location"
       ]
     },
     "web": {
