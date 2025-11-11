@@ -50,8 +50,10 @@ export default function JourneyDetailScreen() {
         return;
       }
 
+      console.log('Loading journey details for ID:', id);
       // If not found in cache, fetch from API
       const response = await apiService.getShipment(parseInt(id as string));
+      console.log('Response:', response.data);
       const shipment = response.data.shipment;
       
       // Map shipment to journey format
@@ -82,7 +84,7 @@ export default function JourneyDetailScreen() {
       setJourney(mappedJourney);
     } catch (error) {
       console.error('Error loading journey details:', error);
-      Alert.alert('Error', 'Failed to load journey details');
+      // Alert.alert('Error', 'Failed to load journey details');
     } finally {
       setLoading(false);
     }
@@ -327,7 +329,7 @@ export default function JourneyDetailScreen() {
 
       <View style={styles.journeyCard}>
         <View style={styles.journeyHeader}>
-          <Text style={styles.journeyId}>#{journey.id}</Text>
+          <Text style={styles.journeyId}>C360-PK-{journey.id}</Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>
             <Text style={styles.statusText}>{humanizeStatus(journey.status)}</Text>
           </View>

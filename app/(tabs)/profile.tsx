@@ -23,8 +23,8 @@ export default function ProfileScreen() {
             } catch (e) {
               console.error('Logout failed:', e);
             } finally {
-              // Route to root; index screen will redirect to /auth when user is null
-              router.replace('/auth/login');
+              // Route to phone login screen
+              router.replace('/auth');
             }
           },
         },

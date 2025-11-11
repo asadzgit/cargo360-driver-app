@@ -214,7 +214,10 @@ class ApiService {
   }
 
   async getShipment(shipmentId: number): Promise<ApiResponse<{ shipment: Shipment }>> {
-    return this.makeRequest(`/shipments/${shipmentId}`);
+    console.log('Getting shipment:', shipmentId);
+    const response = await this.makeRequest<ApiResponse<{ shipment: Shipment }>>(`/shipments/${shipmentId}`);
+    console.log('Response:', response.data);
+    return response;
   }
 
   async updateShipment(
