@@ -1,0 +1,68 @@
+# EAS Build Ignore File
+# Reduces upload size and speeds up builds
+
+# Dependencies (will be reinstalled during build)
+node_modules/
+
+# Build outputs
+.expo/
+dist/
+build/
+android/
+ios/
+
+# Cache directories
+.cache/
+.tmp/
+tmp/
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation (not needed for build)
+*.md
+docs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Test files
+__tests__/
+*.test.js
+*.test.ts
+*.test.tsx
+*.spec.js
+*.spec.ts
+*.spec.tsx
+
+# Scripts (not needed for build)
+scripts/
+
+# Large media files not needed
+*.mp4
+*.mov
+*.avi
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Demo mode files (not needed for production)
+DEMO_MODE_README.md
+SCREENSHOT_GUIDE.md
+CHANGES_SUMMARY.md
+fix-dependencies.sh
+

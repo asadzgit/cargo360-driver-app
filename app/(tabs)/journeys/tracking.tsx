@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
-import { useNotifications } from '@/context/NotificationContext';
+// import { useNotifications } from '@/context/NotificationContext';
 import { MapPin, Play, Square, Navigation } from 'lucide-react-native';
 
 export default function TrackingScreen() {
@@ -14,17 +14,17 @@ export default function TrackingScreen() {
     stopTracking, 
     sendLocationUpdate 
   } = useLocationTracking();
-  const { sendNotification } = useNotifications();
+  // const { sendNotification } = useNotifications();
   const [currentJourney, setCurrentJourney] = useState(null);
 
   const handleStartJourney = async () => {
     try {
       await startTracking();
-      await sendNotification('journey_started', {
-        message: 'Journey has started. Live tracking is now active.',
-        driverName: user?.name,
-        journeyId: currentJourney?.id,
-      });
+      // await sendNotification('journey_started', {
+      //   message: 'Journey has started. Live tracking is now active.',
+      //   driverName: user?.name,
+      //   journeyId: currentJourney?.id,
+      // });
       Alert.alert('Journey Started', 'Location tracking is now active');
     } catch (error) {
       Alert.alert('Error', 'Failed to start tracking');
@@ -34,11 +34,11 @@ export default function TrackingScreen() {
   const handleStopJourney = async () => {
     try {
       await stopTracking();
-      await sendNotification('journey_completed', {
-        message: 'Journey has been completed successfully.',
-        driverName: user?.name,
-        journeyId: currentJourney?.id,
-      });
+      // await sendNotification('journey_completed', {
+      //   message: 'Journey has been completed successfully.',
+      //   driverName: user?.name,
+      //   journeyId: currentJourney?.id,
+      // });
       Alert.alert('Journey Completed', 'Tracking has been stopped');
     } catch (error) {
       Alert.alert('Error', 'Failed to stop tracking');
@@ -53,13 +53,13 @@ export default function TrackingScreen() {
     };
 
     try {
-      await sendNotification('milestone_reached', {
-        message: milestoneMessages[milestoneType],
-        milestone: milestoneType,
-        driverName: user?.name,
-        journeyId: currentJourney?.id,
-        location: location,
-      });
+      // await sendNotification('milestone_reached', {
+      //   message: milestoneMessages[milestoneType],
+      //   milestone: milestoneType,
+      //   driverName: user?.name,
+      //   journeyId: currentJourney?.id,
+      //   location: location,
+      // });
       Alert.alert('Milestone Updated', 'Client has been notified');
     } catch (error) {
       Alert.alert('Error', 'Failed to send milestone update');

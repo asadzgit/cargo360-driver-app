@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ScrollView
 import * as Linking from 'expo-linking';
 import { useAuth } from '@/context/AuthContext';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
-import { useNotifications } from '@/context/NotificationContext';
+// import { useNotifications } from '@/context/NotificationContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MapPin, Navigation, Target, ArrowLeft, Play, Square, Clock, Route, ExternalLink } from 'lucide-react-native';
 
 console.log('useAuth:', useAuth);
-console.log('useNotifications:', useNotifications);
+// console.log('useNotifications:', useNotifications);
 console.log('useLocationTracking:', useLocationTracking);
 
 
@@ -44,7 +44,7 @@ export default function LiveTrackingScreen() {
     startTracking, 
     stopTracking 
   } = useLocationTracking();
-  const { sendNotification } = useNotifications();
+  // const { sendNotification } = useNotifications();
   
   const [mapComponents, setMapComponents] = useState<any>(null);
   const [journey, setJourney] = useState<JourneyData | null>(null);
@@ -234,11 +234,11 @@ export default function LiveTrackingScreen() {
         }
       }, 5000);
 
-      await sendNotification('journey_started', {
-        message: `${user?.name} has started journey to ${journey?.toLocation}`,
-        driverName: user?.name,
-        journeyId: journey?.id,
-      });
+      // await sendNotification('journey_started', {
+      //   message: `${user?.name} has started journey to ${journey?.toLocation}`,
+      //   driverName: user?.name,
+      //   journeyId: journey?.id,
+      // });
 
       setMilestones(prev => [...prev, `Journey started at ${new Date().toLocaleTimeString()}`]);
       Alert.alert('Journey Started', 'Live tracking is active. Admin can monitor your progress in real-time.');
@@ -256,11 +256,11 @@ export default function LiveTrackingScreen() {
         intervalRef.current = null;
       }
 
-      await sendNotification('journey_completed', {
-        message: `${user?.name} has completed journey to ${journey?.toLocation}`,
-        driverName: user?.name,
-        journeyId: journey?.id,
-      });
+      // await sendNotification('journey_completed', {
+      //   message: `${user?.name} has completed journey to ${journey?.toLocation}`,
+      //   driverName: user?.name,
+      //   journeyId: journey?.id,
+      // });
 
       setMilestones(prev => [...prev, `Journey completed at ${new Date().toLocaleTimeString()}`]);
       Alert.alert('Journey Completed', 'Tracking stopped. Journey marked as complete.');
@@ -281,13 +281,13 @@ export default function LiveTrackingScreen() {
     const milestone = `${milestoneMessages[type]} at ${new Date().toLocaleTimeString()}`;
     setMilestones(prev => [...prev, milestone]);
     
-    await sendNotification('milestone_reached', {
-      message: `${user?.name}: ${milestoneMessages[type]}`,
-      milestone: type,
-      driverName: user?.name,
-      journeyId: journey?.id,
-      location: location,
-    });
+    // await sendNotification('milestone_reached', {
+    //   message: `${user?.name}: ${milestoneMessages[type]}`,
+    //   milestone: type,
+    //   driverName: user?.name,
+    //   journeyId: journey?.id,
+    //   location: location,
+    // });
 
     sendLocationToAdmin(); // Send immediate update with milestone
   };
