@@ -48,21 +48,28 @@ export default function VerifyOtpScreen() {
       <Text style={styles.title}>Verify OTP</Text>
       <Text style={styles.subtitle}>We sent a 6-digit code to {phone}</Text>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>OTP</Text>
-        <TextInput
-          style={styles.input}
-          value={otp}
-          onChangeText={setOtp}
-          placeholder="123456"
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-      </View>
+      {/* ✅ Combined OTP + Verify button row */}
+      <View style={styles.otpRow}>
+        <View style={styles.otpInputContainer}>
+          <Text style={styles.label}>OTP</Text>
+          <TextInput
+            style={styles.input}
+            value={otp}
+            onChangeText={setOtp}
+            placeholder="123456"
+            keyboardType="number-pad"
+            maxLength={6}
+          />
+        </View>
 
-      <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={onVerify} disabled={loading}>
-        <Text style={styles.ctaText}>{loading ? 'Verifying...' : 'Verify'}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.ctaSmall, loading && styles.disabled]}
+          onPress={onVerify}
+          disabled={loading}
+        >
+          <Text style={styles.ctaText}>{loading ? '...' : 'Verify'}</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.resend} onPress={onResend} disabled={resending}>
         <Text style={styles.resendText}>{resending ? 'Resending...' : 'Resend OTP'}</Text>
@@ -75,11 +82,40 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 100 },
   title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
-  inputContainer: { marginBottom: 16 },
+
+  // ✅ New layout styles
+  otpRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  otpInputContainer: {
+    width: '70%',
+  },
+  ctaSmall: {
+    width: '28%',
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Existing styles unchanged
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+    letterSpacing: 4,
+    textAlign: 'left',
+  },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff', letterSpacing: 4, textAlign: 'center' },
-  cta: { backgroundColor: '#2563eb', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
-  ctaText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  ctaText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   disabled: { opacity: 0.6 },
   resend: { alignItems: 'center', marginTop: 16 },
   resendText: { color: '#2563eb' },

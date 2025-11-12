@@ -51,10 +51,12 @@ export default function DriversScreen() {
           <Map size={20} color="#ffffff" />
           <Text style={styles.mapButtonText}>Live Map</Text>
         </TouchableOpacity> */}
-        <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
-          <Plus size={20} color="#ffffff" />
-          <Text style={styles.addButtonText}>Add Driver</Text>
-        </TouchableOpacity>
+         {drivers.length != 0 && 
+          <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
+            <Plus size={20} color="#ffffff" />
+            <Text style={styles.addButtonText}>Add Driver</Text>
+          </TouchableOpacity>
+        }
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>

@@ -1,7 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ScrollView } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building, Phone, MapPin } from 'lucide-react-native';
+import { LogOut, User, Building, Phone, MapPin, Mail, Contact } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -23,8 +24,7 @@ export default function ProfileScreen() {
             } catch (e) {
               console.error('Logout failed:', e);
             } finally {
-              // Route to phone login screen
-              router.replace('/auth');
+              router.replace('/auth/login');
             }
           },
         },
@@ -35,7 +35,7 @@ export default function ProfileScreen() {
   const isBroker = user?.role === 'trucker';
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
       </View>
@@ -44,11 +44,8 @@ export default function ProfileScreen() {
         <View style={styles.avatarContainer}>
           <User size={48} color="#64748b" />
         </View>
-        
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>
-            {user?.name}
-          </Text>
+          <Text style={styles.userName}>{user?.name}</Text>
           {/* <Text style={styles.userRole}>
             {isBroker ? 'Broker' : `Driver • ID: ${user?.driverId}`}
           </Text> */}
@@ -57,7 +54,7 @@ export default function ProfileScreen() {
 
       <View style={styles.detailsCard}>
         <Text style={styles.detailsTitle}>Account Details</Text>
-        
+
         <View style={styles.detailItem}>
           <View style={styles.detailIcon}>
             <User size={20} color="#64748b" />
@@ -68,53 +65,56 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* {isBroker ? (
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Building size={20} color="#64748b" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>Company</Text>
-              <Text style={styles.detailValue}>{user?.companyName}</Text>
-            </View>
-          </View>
-        ) : (
-          <>
-            <View style={styles.detailItem}>
-              <View style={styles.detailIcon}>
-                <Phone size={20} color="#64748b" />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>Phone</Text>
-                <Text style={styles.detailValue}>{user?.phone}</Text>
-              </View>
-            </View>
+        {/* Additional details can go here */}
+      </View>
 
-            <View style={styles.detailItem}>
-              <View style={styles.detailIcon}>
-                <MapPin size={20} color="#64748b" />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={styles.detailLabel}>License</Text>
-                <Text style={styles.detailValue}>{user?.licenseNumber}</Text>
-              </View>
-            </View>
-          </>
-        )} */}
+      {/* Support Section */}
+      <View style={styles.supportSection}>
+        <Text style={styles.supportTitle}>Contact Support</Text>
+
+        <TouchableOpacity
+          style={styles.supportRow}
+          onPress={() => Linking.openURL('mailto:info@cargo360pk.com')}
+        >
+          <Mail size={20} color="#64748B" />
+          <Text style={styles.supportLinkTextNoDecoration}>info@cargo360pk.com</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.supportRow}
+          onPress={() => Linking.openURL('tel:923337766609')}
+        >
+          <Phone size={20} color="#64748B" />
+          <Text style={styles.supportLinkTextNoDecoration}>92 333 7766609</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.supportRow}
+          onPress={() => Linking.openURL('https://cargo360pk.com/privacy-policy')}
+        >
+          <Contact size={20} color="#64748B" />
+          <Text style={styles.supportLinkText}>Privacy Policy</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom footer */}
+      <View style={styles.footerBottom}>
+        <Text style={styles.supportText}>© 2025 CARGO 360. All rights reserved.</Text>
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <LogOut size={20} color="#dc2626" />
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#f8fafc',
+    paddingBottom: 24,
   },
   header: {
     paddingHorizontal: 24,
@@ -212,10 +212,53 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#dc2626',
     gap: 12,
+    marginTop: 24,
   },
   logoutText: {
     color: '#dc2626',
     fontSize: 16,
     fontWeight: '600',
+  },
+  supportSection: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    gap: 12,
+  },
+  supportTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  supportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    paddingLeft: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  supportLinkText: {
+    color: '#2563EB',
+    fontSize: 14,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  supportLinkTextNoDecoration: {
+    color: '#64748B',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  supportText: {
+    color: '#64748B',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  footerBottom: {
+    marginTop: 24,
+    alignItems: 'center',
+    paddingVertical: 16,
   },
 });
