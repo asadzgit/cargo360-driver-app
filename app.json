@@ -54,14 +54,7 @@
         }
       ],
       "expo-font",
-      "expo-location",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/cargo-icon.png",
-          "color": "#ffffff"
-        }
-      ]
+      "expo-location"
     ],
     "experiments": {
       "typedRoutes": true

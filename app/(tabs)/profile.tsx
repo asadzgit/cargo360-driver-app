@@ -6,6 +6,7 @@ import { LogOut, User, Building, Phone, MapPin, Mail, Contact } from 'lucide-rea
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  console.log(user);
   const router = useRouter();
 
   const handleLogout = () => {
@@ -24,7 +25,7 @@ export default function ProfileScreen() {
             } catch (e) {
               console.error('Logout failed:', e);
             } finally {
-              router.replace('/auth/login');
+              router.replace('/auth');
             }
           },
         },
