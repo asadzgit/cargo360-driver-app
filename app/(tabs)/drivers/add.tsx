@@ -3,17 +3,35 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter } from 'expo-router';
 import { useDrivers } from '@/hooks/useDrivers';
 import { ArrowLeft } from 'lucide-react-native';
+import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function AddDriverScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [loading, setLoading] = useState(false);
   const { addDriver } = useDrivers();
   const router = useRouter();
 
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    // Clear error when user starts typing
+    if (phoneError) {
+      setPhoneError('');
+    }
+  };
+
   const handleAddDriver = async () => {
     if (!name || !phone) {
       Alert.alert('Error', 'Please provide driver name and phone number');
+      return;
+    }
+
+    // Validate phone number
+    const validation = validatePakistaniPhone(phone);
+    if (!validation.isValid) {
+      setPhoneError(validation.error || 'Invalid phone number');
+      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
       return;
     }
 
@@ -55,13 +73,14 @@ export default function AddDriverScreen() {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, phoneError && styles.inputError]}
             value={phone}
-            onChangeText={setPhone}
-            placeholder="Enter phone number (e.g. +923001112223)"
+            onChangeText={handlePhoneChange}
+            placeholder="e.g. 03001234567, 923001234567, or +923001234567"
             keyboardType="phone-pad"
             autoCapitalize="none"
           />
+          {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
         </View>
 
         <TouchableOpacity
@@ -140,5 +159,13 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
