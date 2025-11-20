@@ -2,16 +2,34 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
+import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function PhoneEntryScreen() {
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [role, setRole] = useState<'trucker' | 'driver'>('driver');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    // Clear error when user starts typing
+    if (phoneError) {
+      setPhoneError('');
+    }
+  };
+
   const handleContinue = async () => {
     if (!phone) {
       Alert.alert('Missing phone', 'Please enter your phone number');
+      return;
+    }
+
+    // Validate phone number
+    const validation = validatePakistaniPhone(phone);
+    if (!validation.isValid) {
+      setPhoneError(validation.error || 'Invalid phone number');
+      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
       return;
     }
 
@@ -57,13 +75,14 @@ export default function PhoneEntryScreen() {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Phone</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, phoneError && styles.inputError]}
           value={phone}
-          onChangeText={setPhone}
-          placeholder="e.g. +92XXXXXXXXXX"
+          onChangeText={handlePhoneChange}
+          placeholder="e.g. +923001234567"
           keyboardType="phone-pad"
           autoCapitalize="none"
         />
+        {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
       </View>
 
       <View style={styles.roleSwitcher}>
@@ -100,7 +119,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff' },
+  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, backgroundColor: '#ffffff' },
   roleSwitcher: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 16 },
   roleButton: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center', backgroundColor: '#fff' },
   roleButtonActive: { backgroundColor: '#e0f2fe', borderColor: '#38bdf8' },
@@ -111,4 +130,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.6 },
   altLink: { alignItems: 'center', marginTop: 20 },
   altText: { color: '#2563eb' },
+  inputError: { borderColor: '#dc2626' },
+  errorText: { color: '#dc2626', fontSize: 12, marginTop: 4 },
 });

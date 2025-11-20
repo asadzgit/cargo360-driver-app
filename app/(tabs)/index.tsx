@@ -6,6 +6,7 @@ import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
 import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
+import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -34,13 +35,30 @@ export default function DashboardScreen() {
   // Add Driver modal state
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
+  const [driverPhoneError, setDriverPhoneError] = useState('');
   const [addingDriver, setAddingDriver] = useState(false);
 
   const { addDriver } = useDrivers();
 
+  const handleDriverPhoneChange = (value: string) => {
+    setDriverPhone(value);
+    // Clear error when user starts typing
+    if (driverPhoneError) {
+      setDriverPhoneError('');
+    }
+  };
+
   const handleAddDriver = async () => {
     if (!driverName || !driverPhone) {
       Alert.alert('Error', 'Please provide driver name and phone number');
+      return;
+    }
+
+    // Validate phone number
+    const validation = validatePakistaniPhone(driverPhone);
+    if (!validation.isValid) {
+      setDriverPhoneError(validation.error || 'Invalid phone number');
+      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
       return;
     }
     setAddingDriver(true);
@@ -214,13 +232,14 @@ export default function DashboardScreen() {
               <View>
                 <Text style={styles.label}>Phone Number</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, driverPhoneError && styles.inputError]}
                   value={driverPhone}
-                  onChangeText={setDriverPhone}
-                  placeholder="Enter phone number (e.g. +923001112223)"
+                  onChangeText={handleDriverPhoneChange}
+                  placeholder="e.g. 03001234567, 923001234567, or +923001234567"
                   keyboardType="phone-pad"
                   autoCapitalize="none"
                 />
+                {driverPhoneError ? <Text style={styles.errorText}>{driverPhoneError}</Text> : null}
               </View>
 
               <TouchableOpacity
@@ -531,5 +550,13 @@ const styles = StyleSheet.create({
   itemSub: {
     fontSize: 13,
     color: '#64748b',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
