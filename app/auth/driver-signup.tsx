@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
+import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DriverSignupScreen() {
   const [formData, setFormData] = useState({
@@ -12,12 +13,17 @@ export default function DriverSignupScreen() {
     password: '',
     confirmPassword: '',
   });
+  const [phoneError, setPhoneError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear phone error when user starts typing
+    if (field === 'phone' && phoneError) {
+      setPhoneError('');
+    }
   };
 
   const validateForm = () => {
@@ -44,8 +50,11 @@ export default function DriverSignupScreen() {
       return false;
     }
     
-    if (phone.length < 6) {
-      Alert.alert('Error', 'Phone number must be at least 6 characters');
+    // Validate Pakistani phone number
+    const phoneValidation = validatePakistaniPhone(phone);
+    if (!phoneValidation.isValid) {
+      setPhoneError(phoneValidation.error || 'Invalid phone number');
+      Alert.alert('Invalid Phone Number', phoneValidation.error || 'Please enter a valid Pakistani phone number');
       return false;
     }
     
@@ -136,12 +145,13 @@ export default function DriverSignupScreen() {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, phoneError && styles.inputError]}
             value={formData.phone}
             onChangeText={(value) => handleInputChange('phone', value)}
-            placeholder="Enter your phone number"
+            placeholder="e.g. 03001234567, 923001234567, or +923001234567"
             keyboardType="phone-pad"
           />
+          {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
         </View>
 
         <View style={styles.inputContainer}>
@@ -284,5 +294,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#92400e',
     lineHeight: 20,
+  },
+  inputError: {
+    borderColor: '#dc2626',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
