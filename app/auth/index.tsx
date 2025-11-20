@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
 
@@ -43,6 +43,14 @@ export default function PhoneEntryScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Image 
+          source={require('@/assets/images/cargo-icon.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      
       <Text style={styles.title}>Sign in with phone</Text>
       <Text style={styles.subtitle}>Enter your phone to continue</Text>
 
@@ -85,7 +93,9 @@ export default function PhoneEntryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 100 },
+  container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 60 },
+  logoContainer: { alignItems: 'center', marginBottom: 32 },
+  logo: { width: 120, height: 120 },
   title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },

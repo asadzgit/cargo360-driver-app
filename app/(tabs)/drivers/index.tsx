@@ -4,11 +4,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useRouter } from 'expo-router';
 import { Plus, User, Phone, MapPin, Map } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriversScreen() {
   const { user } = useAuth();
   const { drivers, addDriver } = useDrivers();
   const router = useRouter();
+  const scrollRef = useScrollToTopOnFocus();
 
   if (user?.role !== 'trucker') {
     return (
@@ -59,7 +61,7 @@ export default function DriversScreen() {
         }
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {drivers.length === 0 ? (
           <View style={styles.emptyState}>
             <User size={64} color="#cbd5e1" />

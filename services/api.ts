@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStorage } from '@/services/tokenStorage';
 
 const BASE_URL = 'https://cargo360-api.onrender.com';
 
@@ -55,38 +56,113 @@ export interface ApiError {
   code?: string;
 }
 
+type RequestOptions = RequestInit & {
+  skipAuthRefresh?: boolean;
+};
+
 class ApiService {
-  private async getAuthToken(): Promise<string | null> {
-    try {
-      const token = await AsyncStorage.getItem('accessToken');
-      return token;
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return null;
-    }
-  }
+  private refreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
 
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestOptions = {}
   ): Promise<T> {
-    const token = await this.getAuthToken();
-    
+    const { skipAuthRefresh, ...rest } = options;
+    const token = await tokenStorage.getAccessToken();
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(rest.headers ?? {}),
+    };
+
     const config: RequestInit = {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+      ...rest,
+      headers,
     };
 
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+
+    if (response.status === 401 && !skipAuthRefresh && token) {
+      const refreshed = await this.tryRefreshToken();
+      if (refreshed) {
+        return this.makeRequest<T>(endpoint, {
+          ...options,
+          skipAuthRefresh: true,
+        });
+      }
+
+      await tokenStorage.clearTokens();
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    const data = await this.parseResponse(response);
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || 'API request failed');
+      throw new Error(data?.error || data?.message || 'API request failed');
     }
+
+    return data;
+  }
+
+  private async parseResponse(response: Response) {
+    const text = await response.text();
+    if (!text) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.warn('Failed to parse response JSON:', error);
+      return { message: text };
+    }
+  }
+
+  private async tryRefreshToken() {
+    try {
+      await this.performTokenRefresh();
+      return true;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }
+
+  private performTokenRefresh() {
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.refreshTokenRequest().finally(() => {
+        this.refreshPromise = null;
+      });
+    }
+
+    return this.refreshPromise;
+  }
+
+  private async refreshTokenRequest() {
+    const refreshToken = await tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    const data = await this.parseResponse(response);
+
+    if (!response.ok) {
+      throw new Error(data?.error || data?.message || 'Token refresh failed');
+    }
+
+    await tokenStorage.saveTokens({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    });
 
     return data;
   }
@@ -98,9 +174,10 @@ class ApiService {
       body: JSON.stringify({ email, password }),
     });
 
-    // Store tokens
-    await AsyncStorage.setItem('accessToken', response.accessToken);
-    await AsyncStorage.setItem('refreshToken', response.refreshToken);
+    await tokenStorage.saveTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+    });
     await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
     return response;
@@ -129,25 +206,14 @@ class ApiService {
   }
 
   async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
-    const refreshToken = await AsyncStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    const response = await this.makeRequest<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    // Update stored tokens
-    await AsyncStorage.setItem('accessToken', response.accessToken);
-    await AsyncStorage.setItem('refreshToken', response.refreshToken);
-
-    return response;
+    return this.refreshTokenRequest();
   }
 
   async logout(): Promise<void> {
-    await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+    await Promise.all([
+      tokenStorage.clearTokens(),
+      AsyncStorage.removeItem('user'),
+    ]);
   }
 
   // Shipment endpoints
@@ -347,9 +413,10 @@ class ApiService {
       body: JSON.stringify(params),
     });
 
-    // Store tokens and user
-    await AsyncStorage.setItem('accessToken', response.accessToken);
-    await AsyncStorage.setItem('refreshToken', response.refreshToken);
+    await tokenStorage.saveTokens({
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken,
+    });
     await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
     return response;

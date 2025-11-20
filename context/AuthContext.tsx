@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiService, User as ApiUser } from '@/services/api';
+import { apiService } from '@/services/api';
+import { tokenStorage } from '@/services/tokenStorage';
 // import { stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
 interface User {
   id: number;
@@ -19,6 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  authReady: boolean;
   login: (email: string, password: string, role?: 'customer' | 'trucker' | 'driver') => Promise<void>;
   loginDriver: (email: string, password: string) => Promise<void>;
   register: (userData: {
@@ -38,34 +40,44 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    loadStoredUser();
+    bootstrapSession();
   }, []);
 
-  const loadStoredUser = async () => {
+  const bootstrapSession = async () => {
+    setIsLoading(true);
     try {
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        
-        // Verify token is still valid by fetching profile
-        try {
-          const profileResponse = await apiService.getProfile();
-          setUser(profileResponse.user);
-        } catch (error) {
-          // Token might be expired, clear stored data
-          console.log('Token expired, clearing stored user');
-          await apiService.logout();
-          setUser(null);
-        }
+        setUser(JSON.parse(storedUser));
       }
+
+      const accessToken = await tokenStorage.getAccessToken();
+      if (!accessToken) {
+        await clearSession();
+        return;
+      }
+
+      const profileResponse = await apiService.getProfile();
+      setUser(profileResponse.user);
+      await AsyncStorage.setItem('user', JSON.stringify(profileResponse.user));
     } catch (error) {
-      console.error('Error loading stored user:', error);
+      console.warn('Session bootstrap failed:', error);
+      await clearSession();
     } finally {
       setIsLoading(false);
+      setAuthReady(true);
     }
+  };
+
+  const clearSession = async () => {
+    await Promise.all([
+      tokenStorage.clearTokens(),
+      AsyncStorage.removeItem('user'),
+    ]);
+    setUser(null);
   };
 
   const login = async (email: string, password: string, role?: 'customer' | 'trucker' | 'driver') => {
@@ -88,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setUser(response.user);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -114,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       setUser(response.user);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       console.error('Driver login error:', error);
       throw error;
@@ -124,8 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const phoneLogin = async (phone: string, pin: string) => {
     try {
       const response = await apiService.phoneLogin({ phone, pin });
-      console.log(response);
       setUser(response.user);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       console.error('Phone login error:', error);
       throw error;
@@ -159,28 +173,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-const logout = async () => {
-  try {
-    await Promise.all([
-      AsyncStorage.multiRemove([
-        'accessToken',
-        'refreshToken',
-        'user',
-        // 'tracking.currentShipmentId',
-        // 'tracking.lastSentAt',
-      ]),
-    ]);
-  } catch (error) {
-    console.error('Logout error:', error);
-  } finally {
-    setUser(null);
-  }
-};
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      await clearSession();
+    }
+  };
 
   return (
     <AuthContext.Provider value={{
       user,
       isLoading,
+      authReady,
       login,
       loginDriver,
       register,

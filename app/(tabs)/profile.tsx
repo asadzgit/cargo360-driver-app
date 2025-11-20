@@ -3,11 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ScrollView } 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { LogOut, User, Building, Phone, MapPin, Mail, Contact } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   console.log(user);
   const router = useRouter();
+  const scrollRef = useScrollToTopOnFocus();
 
   const handleLogout = () => {
     Alert.alert(
@@ -36,7 +38,7 @@ export default function ProfileScreen() {
   const isBroker = user?.role === 'trucker';
 
   return (
-    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
       </View>

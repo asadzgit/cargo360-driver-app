@@ -3,11 +3,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
 import { Plus, Truck, MapPin, Clock, User } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function JourneysScreen() {
   const { user } = useAuth();
   const { journeys } = useJourneys();
   const router = useRouter();
+  const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
   const userJourneys = journeys 
@@ -52,7 +54,7 @@ export default function JourneysScreen() {
         )} */}
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {userJourneys.length === 0 ? (
           <View style={styles.emptyState}>
             <Truck size={64} color="#cbd5e1" />
@@ -87,7 +89,7 @@ export default function JourneysScreen() {
               >
                 <View style={styles.journeyHeader}>
                   <View style={styles.journeyInfo}>
-                    <Text style={styles.journeyId}>#{journey.id.slice(0, 8)}</Text>
+                    <Text style={styles.journeyId}>C360-PK-{journey.id.slice(0, 8)}</Text>
                     <Text style={styles.vehicleType}>{journey.vehicleType}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>

@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { ArrowLeft, Phone, MapPin, User, Clock, Map } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriverDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { getDriverById } = useDrivers();
   const { journeys } = useJourneys();
+  const scrollRef = useScrollToTopOnFocus();
 
   const driver = getDriverById(id as string);
 
@@ -45,7 +47,7 @@ export default function DriverDetailScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#64748b" />

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useDrivers } from '@/hooks/useDrivers';
 import { ArrowLeft, User, MapPin, Truck, Check } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function AssignDriverScreen() {
   const { journeyId: qpJourneyId } = useLocalSearchParams<{ journeyId?: string }>();
@@ -12,6 +13,7 @@ export default function AssignDriverScreen() {
   const { user } = useAuth();
   const { journeys, assignDriverToJourney } = useJourneys();
   const { drivers } = useDrivers();
+  const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | undefined>(qpJourneyId);
@@ -49,7 +51,7 @@ export default function AssignDriverScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#fff" />

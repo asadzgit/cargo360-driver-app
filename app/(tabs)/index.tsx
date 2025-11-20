@@ -5,12 +5,14 @@ import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
 import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
+import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { drivers } = useDrivers();
   const { journeys } = useJourneys();
   const router = useRouter();
+  const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
 
@@ -86,7 +88,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <Text style={styles.greeting}>
           {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
