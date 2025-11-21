@@ -124,10 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const phoneLogin = async (phone: string, pin: string) => {
     try {
       const response = await apiService.phoneLogin({ phone, pin });
-      console.log(response);
       setUser(response.user);
     } catch (error) {
-      console.error('Phone login error:', error);
+      // Don't log to console - let the UI handle the error message
       throw error;
     }
   };

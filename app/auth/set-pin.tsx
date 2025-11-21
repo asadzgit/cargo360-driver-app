@@ -4,8 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
 
 export default function SetPinScreen() {
-  const { phone: phoneParam } = useLocalSearchParams<{ phone?: string }>();
+  const { phone: phoneParam, resetPin: resetPinParam } = useLocalSearchParams<{ phone?: string; resetPin?: string }>();
   const [phone] = useState(phoneParam || '');
+  const [isResetPin] = useState(resetPinParam === 'true');
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,13 @@ export default function SetPinScreen() {
     setLoading(true);
     try {
       await apiService.setPin({ phone, pin });
-      router.replace({ pathname: '/auth/enter-pin', params: { phone } });
+      if (isResetPin) {
+        Alert.alert('Success', 'Your PIN has been reset successfully.', [
+          { text: 'OK', onPress: () => router.replace({ pathname: '/auth/enter-pin', params: { phone } }) }
+        ]);
+      } else {
+        router.replace({ pathname: '/auth/enter-pin', params: { phone } });
+      }
     } catch (e: any) {
       Alert.alert('Failed to set PIN', e?.message || 'Please try again');
     } finally {
@@ -34,8 +41,8 @@ export default function SetPinScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Set your PIN</Text>
-      <Text style={styles.subtitle}>Create a 6-digit PIN for quick login</Text>
+      <Text style={styles.title}>{isResetPin ? 'Reset your PIN' : 'Set your PIN'}</Text>
+      <Text style={styles.subtitle}>{isResetPin ? 'Enter a new 6-digit PIN' : 'Create a 6-digit PIN for quick login'}</Text>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>PIN</Text>

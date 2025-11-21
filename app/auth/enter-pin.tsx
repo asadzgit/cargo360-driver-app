@@ -48,6 +48,13 @@ export default function EnterPinScreen() {
       <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={onSubmit} disabled={loading}>
         <Text style={styles.ctaText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity 
+        onPress={() => router.push('/auth/forgot-pin')} 
+        style={{ alignSelf: 'flex-end', marginTop: 12 }}
+      >
+        <Text style={{ color: '#059669', fontWeight: '600' }}>Forgot PIN?</Text>
+      </TouchableOpacity>
     </View>
   );
 }
