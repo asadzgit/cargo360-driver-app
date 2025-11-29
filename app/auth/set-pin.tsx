@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 export default function SetPinScreen() {
   const { phone: phoneParam, resetPin: resetPinParam } = useLocalSearchParams<{ phone?: string; resetPin?: string }>();
@@ -10,6 +11,8 @@ export default function SetPinScreen() {
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
   const router = useRouter();
 
   const onSubmit = async () => {
@@ -46,28 +49,56 @@ export default function SetPinScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>PIN</Text>
-        <TextInput
-          style={styles.input}
-          value={pin}
-          onChangeText={setPin}
-          placeholder="••••••"
-          keyboardType="number-pad"
-          maxLength={6}
-          secureTextEntry
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={pin}
+            onChangeText={setPin}
+            placeholder="Enter your PIN"
+            keyboardType="number-pad"
+            maxLength={6}
+            secureTextEntry={!showPin}
+            textAlign="left"
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowPin(!showPin)}
+            activeOpacity={0.7}
+          >
+            {showPin ? (
+              <EyeOff size={20} color="#64748b" />
+            ) : (
+              <Eye size={20} color="#64748b" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Confirm PIN</Text>
-        <TextInput
-          style={styles.input}
-          value={confirm}
-          onChangeText={setConfirm}
-          placeholder="••••••"
-          keyboardType="number-pad"
-          maxLength={6}
-          secureTextEntry
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={confirm}
+            onChangeText={setConfirm}
+            placeholder="Confirm your PIN"
+            keyboardType="number-pad"
+            maxLength={6}
+            secureTextEntry={!showConfirmPin}
+            textAlign="left"
+          />
+          <TouchableOpacity
+            style={styles.eyeButton}
+            onPress={() => setShowConfirmPin(!showConfirmPin)}
+            activeOpacity={0.7}
+          >
+            {showConfirmPin ? (
+              <EyeOff size={20} color="#64748b" />
+            ) : (
+              <Eye size={20} color="#64748b" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={onSubmit} disabled={loading}>
@@ -83,7 +114,28 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff', letterSpacing: 4, textAlign: 'center' },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+  },
+  input: { 
+    flex: 1,
+    fontSize: 16,
+    backgroundColor: 'transparent',
+    letterSpacing: 4,
+    textAlign: 'left',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  eyeButton: {
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   cta: { backgroundColor: '#059669', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   ctaText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   disabled: { opacity: 0.6 },

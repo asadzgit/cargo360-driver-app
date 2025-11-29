@@ -20,9 +20,9 @@ export default function VerifyOtpScreen() {
     setLoading(true);
     try {
       const res = await apiService.verifyOtp({ phone, otp });
-      // If this is a PIN reset flow, always go to set-pin screen
+      // If this is a PIN reset flow, always go to set-pin screen with resetPin flag
       if (isResetPin) {
-        router.replace({ pathname: '/auth/set-pin', params: { phone } });
+        router.replace({ pathname: '/auth/set-pin', params: { phone, resetPin: 'true' } });
       } else if (res.nextStep === 'enter_pin') {
         router.replace({ pathname: '/auth/enter-pin', params: { phone } });
       } else {

@@ -22,10 +22,46 @@ export default function ForgotPinScreen() {
       return;
     }
 
-    // Skip phone verification check - let the backend validate when setting PIN
-    // This avoids issues with checkPhone API and simplifies the flow
-    // The setPin API will validate if the phone exists
-    router.replace({ pathname: '/auth/set-pin', params: { phone, resetPin: 'true' } });
+    setLoading(true);
+    try {
+      // Try to send OTP directly - skip checkPhone validation as it may give false negatives
+      // The backend will validate the phone number when sending OTP
+      await apiService.resendOtp({ phone });
+      
+      // Navigate to OTP verification screen with resetPin flag
+      router.replace({ pathname: '/auth/verify-otp', params: { phone, resetPin: 'true' } });
+    } catch (e: any) {
+      // Handle API errors from resendOtp
+      const errorMessage = e?.message || 'Please try again';
+      if (errorMessage.toLowerCase().includes('not registered') || 
+          errorMessage.toLowerCase().includes('not found') ||
+          errorMessage.toLowerCase().includes('does not exist') ||
+          errorMessage.toLowerCase().includes('signup') ||
+          errorMessage.toLowerCase().includes('invalid')) {
+        Alert.alert('Phone not found', 'This phone number is not registered.');
+      } else if (errorMessage.toLowerCase().includes('no active') || 
+                 errorMessage.toLowerCase().includes('session') ||
+                 errorMessage.toLowerCase().includes('otp not sent')) {
+        // If resendOtp requires an active session, try using checkPhone to trigger OTP
+        // This might send OTP for unverified phones
+        try {
+          const checkResult = await apiService.checkPhone({ phone, role: 'driver' });
+          // If checkPhone sends OTP (for unverified phones), proceed
+          if (checkResult.nextStep === 'verify_otp') {
+            router.replace({ pathname: '/auth/verify-otp', params: { phone, resetPin: 'true' } });
+            return;
+          }
+          // For verified users, we might need backend support for forgot PIN
+          Alert.alert('Unable to send OTP', 'Please contact support or try using the resend button after reaching the OTP screen.');
+        } catch (checkError: any) {
+          Alert.alert('Failed to send OTP', checkError?.message || errorMessage);
+        }
+      } else {
+        Alert.alert('Failed to send OTP', errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
