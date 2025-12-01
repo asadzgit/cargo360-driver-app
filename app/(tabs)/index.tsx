@@ -1,19 +1,42 @@
-import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { useMemo, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Users, Truck, MapPin, Clock, X, Check, RefreshCcw } from 'lucide-react-native';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
-  const { drivers } = useDrivers();
-  const { journeys } = useJourneys();
+  const { drivers, reload: reloadDrivers } = useDrivers();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
+  const scrollViewRef = useRef(null);
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const isBroker = user?.role === 'trucker';
+
+  // Scroll to top when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      // Refresh both journeys and drivers
+      await Promise.all([reloadJourneys(), reloadDrivers()]);
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadJourneys, reloadDrivers]);
 
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
@@ -104,7 +127,19 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView 
+      ref={scrollViewRef}
+      style={styles.container} 
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#ed8411']}
+          tintColor="#ed8411"
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.greeting}>
           {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
@@ -179,7 +214,25 @@ export default function DashboardScreen() {
       )}
 
       <View style={styles.recentActivity}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity
+            style={styles.refreshInlineButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <RefreshCcw size={16} color="#FFFFFF" />
+                <Text style={styles.refreshInlineText}>
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
         <View style={styles.activityList}>
           {journeys.slice(0, 3).map((journey, index) => (
             <TouchableOpacity 
@@ -340,6 +393,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshInlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  refreshInlineText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   welcomeText: {
     fontSize: 16,
