@@ -1,13 +1,18 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-import { Plus, Truck, MapPin, Clock, User } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useRef, useState } from 'react';
+import { Plus, Truck, MapPin, Clock, User, RefreshCcw } from 'lucide-react-native';
 
 export default function JourneysScreen() {
   const { user } = useAuth();
-  const { journeys } = useJourneys();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
+  const scrollViewRef = useRef(null);
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const isBroker = user?.role === 'trucker';
   const userJourneys = journeys 
@@ -15,6 +20,24 @@ export default function JourneysScreen() {
   // const userJourneys = isBroker 
   //   ? journeys 
   //   : journeys.filter(j => j.driverId === user?.id);
+
+  // Scroll to top when screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await reloadJourneys();
+    } catch (error) {
+      console.error('Error refreshing journeys:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadJourneys]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -44,15 +67,35 @@ export default function JourneysScreen() {
         <Text style={styles.title}>
           {isBroker ? 'Journey Assignments' : 'My Journeys'}
         </Text>
-        {/* {isBroker && (
-          <TouchableOpacity style={styles.addButton} onPress={() => router.push('/journeys/assign')}>
-            <Plus size={20} color="#ffffff" />
-            <Text style={styles.addButtonText}>Assign</Text>
-          </TouchableOpacity>
-        )} */}
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <RefreshCcw size={16} color="#FFFFFF" />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#ed8411']}
+            tintColor="#ed8411"
+          />
+        }
+      >
         {userJourneys.length === 0 ? (
           <View style={styles.emptyState}>
             <Truck size={64} color="#cbd5e1" />
@@ -167,6 +210,21 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
+    flex: 1,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   addButton: {
     flexDirection: 'row',

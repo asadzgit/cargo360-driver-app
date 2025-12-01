@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map, RefreshCcw } from 'lucide-react-native';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { apiService } from '@/services/api';
@@ -16,7 +16,8 @@ export default function JourneyDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [startingJourney, setStartingJourney] = useState(false);
   const [completingJourney, setCompletingJourney] = useState(false);
-  const { journeys } = useJourneys();
+  const [refreshing, setRefreshing] = useState(false);
+  const { journeys, reload: reloadJourneys } = useJourneys();
 
   // Location tracking - only track when journey is in progress
   const isJourneyInProgress = journey?.status === 'in_progress' ||
@@ -32,10 +33,6 @@ export default function JourneyDetailScreen() {
     shipmentId: journey ? parseInt(journey.id) : null,
     isTracking: isJourneyInProgress,
   });
-
-  useEffect(() => {
-    loadJourneyDetails();
-  }, [id, journeys]);
 
   const loadJourneyDetails = async () => {
     if (!id) return;
@@ -150,6 +147,53 @@ export default function JourneyDetailScreen() {
     const routeKey = `${from.toLowerCase().split(',')[0]}-${to.toLowerCase().split(',')[0]}`;
     return distanceEstimates[routeKey] || '200-300 miles';
   };
+
+  useEffect(() => {
+    loadJourneyDetails();
+  }, [id, journeys]);
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      // Reload journeys list first to get updated data
+      await reloadJourneys();
+      // Force reload the specific journey details from API
+      if (!id) return;
+      
+      const response = await apiService.getShipment(parseInt(id as string));
+      const shipment = response.data.shipment;
+      
+      // Map shipment to journey format
+      const mappedJourney = {
+        id: shipment.id.toString(),
+        clientId: shipment.customerId.toString(),
+        clientName: shipment.Customer?.name || 'Unknown Client',
+        driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
+        driverName: shipment.Driver?.name || shipment.Trucker?.name || 'Unassigned',
+        vehicleType: shipment.vehicleType,
+        loadType: shipment.cargoType,
+        fromLocation: shipment.pickupLocation,
+        toLocation: shipment.dropLocation,
+        status: mapApiStatusToJourneyStatus(shipment.status),
+        createdAt: shipment.createdAt,
+        assignedAt: shipment.status === 'accepted' ? shipment.updatedAt : undefined,
+        startedAt: ['picked_up', 'in_transit'].includes(shipment.status) ? shipment.updatedAt : undefined,
+        completedAt: shipment.status === 'delivered' ? shipment.updatedAt : undefined,
+        notes: shipment.description,
+        budget: shipment.budget,
+        cargoWeight: shipment.cargoWeight,
+        cargoSize: shipment.cargoSize,
+        estimatedDuration: calculateEstimatedDuration(shipment.pickupLocation, shipment.dropLocation),
+        distance: calculateDistance(shipment.pickupLocation, shipment.dropLocation),
+      };
+      
+      setJourney(mappedJourney);
+    } catch (error) {
+      console.error('Error refreshing journey details:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id, reloadJourneys]);
 
   const handleStartJourney = async () => {
     if (!journey) return;
@@ -319,12 +363,37 @@ export default function JourneyDetailScreen() {
   const isAssignedDriver = user?.role === 'driver' && journey.driverId === user.id.toString();
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={['#ed8411']}
+          tintColor="#ed8411"
+        />
+      }
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.title}>Journey Details</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <RefreshCcw size={16} color="#FFFFFF" />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.journeyCard}>
@@ -560,6 +629,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#1e293b',
+    flex: 1,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   loadingText: {
     fontSize: 16,
