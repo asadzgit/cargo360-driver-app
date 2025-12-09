@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
-      console.error('Phone login error:', error);
+      // Don't log to console - let the UI handle the error message
       throw error;
     }
   };

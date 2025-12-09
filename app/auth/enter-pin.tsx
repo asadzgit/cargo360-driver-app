@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 export default function EnterPinScreen() {
   const { phone: phoneParam } = useLocalSearchParams<{ phone?: string }>();
   const [phone] = useState(phoneParam || '');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPin, setShowPin] = useState(false);
   const router = useRouter();
   const { phoneLogin } = useAuth();
 
@@ -34,19 +36,46 @@ export default function EnterPinScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>PIN</Text>
-        <TextInput
-          style={styles.input}
-          value={pin}
-          onChangeText={setPin}
-          placeholder="••••••"
-          keyboardType="number-pad"
-          maxLength={6}
-          secureTextEntry
-        />
+        <View style={styles.rowContainer}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              value={pin}
+              onChangeText={setPin}
+              placeholder="Enter your PIN"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+              maxLength={6}
+              secureTextEntry={!showPin}
+              textAlign="left"
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPin(!showPin)}
+              activeOpacity={0.7}
+            >
+              {showPin ? (
+                <EyeOff size={20} color="#64748b" />
+              ) : (
+                <Eye size={20} color="#64748b" />
+              )}
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={[styles.cta, loading && styles.disabled]} 
+            onPress={onSubmit} 
+            disabled={loading}
+          >
+            <Text style={styles.ctaText}>{loading ? '...' : 'Sign In'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={onSubmit} disabled={loading}>
-        <Text style={styles.ctaText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+      <TouchableOpacity 
+        onPress={() => router.push('/auth/forgot-pin')} 
+        style={{ alignSelf: 'flex-end', marginTop: 12 }}
+      >
+        <Text style={{ color: '#059669', fontWeight: '600' }}>Forgot PIN?</Text>
       </TouchableOpacity>
     </View>
   );
@@ -58,22 +87,45 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { 
+  rowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  inputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    fontSize: 16,
     backgroundColor: '#ffffff',
-    letterSpacing: 4,
-    textAlign: 'center',
+  },
+  input: { 
+    flex: 1,
+    fontSize: 15,
+    backgroundColor: 'transparent',
+    letterSpacing: 0.5,
+    textAlign: 'left',
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 14,
+    minHeight: 48,
+  },
+  eyeButton: {
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cta: {
     backgroundColor: '#2563eb',
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    minWidth: 100,
   },
-  ctaText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  ctaText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   disabled: { opacity: 0.6 },
 });

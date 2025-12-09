@@ -4,8 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { apiService } from '@/services/api';
 
 export default function VerifyOtpScreen() {
-  const { phone: phoneParam } = useLocalSearchParams<{ phone?: string }>();
+  const { phone: phoneParam, resetPin: resetPinParam } = useLocalSearchParams<{ phone?: string; resetPin?: string }>();
   const [phone] = useState(phoneParam || '');
+  const [isResetPin] = useState(resetPinParam === 'true');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -19,7 +20,10 @@ export default function VerifyOtpScreen() {
     setLoading(true);
     try {
       const res = await apiService.verifyOtp({ phone, otp });
-      if (res.nextStep === 'enter_pin') {
+      // If this is a PIN reset flow, always go to set-pin screen with resetPin flag
+      if (isResetPin) {
+        router.replace({ pathname: '/auth/set-pin', params: { phone, resetPin: 'true' } });
+      } else if (res.nextStep === 'enter_pin') {
         router.replace({ pathname: '/auth/enter-pin', params: { phone } });
       } else {
         router.replace({ pathname: '/auth/set-pin', params: { phone } });
@@ -45,7 +49,7 @@ export default function VerifyOtpScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Verify OTP</Text>
+      <Text style={styles.title}>{isResetPin ? 'Reset PIN' : 'Verify OTP'}</Text>
       <Text style={styles.subtitle}>We sent a 6-digit code to {phone}</Text>
 
       {/* ✅ Combined OTP + Verify button row */}

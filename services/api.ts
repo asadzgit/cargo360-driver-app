@@ -153,10 +153,29 @@ class ApiService {
       body: JSON.stringify({ refreshToken }),
     });
 
-    const data = await this.parseResponse(response);
+    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    
+    // Check content type before parsing JSON
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    try {
+      const text = await response.text();
+      if (contentType && contentType.includes('application/json')) {
+        data = JSON.parse(text);
+      } else {
+        // If response is not JSON, it's likely an error page
+        throw new Error(`Server returned non-JSON response. Status: ${response.status}. The endpoint may not exist.`);
+      }
+    } catch (parseError: any) {
+      if (parseError instanceof Error && parseError.message.includes('non-JSON')) {
+        throw parseError;
+      }
+      throw new Error(`Failed to parse response: ${parseError.message}`);
+    }
 
     if (!response.ok) {
-      throw new Error(data?.error || data?.message || 'Token refresh failed');
+      throw new Error(data.error || data.message || `API request failed with status ${response.status}`);
     }
 
     await tokenStorage.saveTokens({
@@ -427,6 +446,26 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(params),
     });
+  }
+
+  // Note: forgotPin and resetPin are handled through the existing checkPhone/verifyOtp/setPin flow
+  // These methods are kept for API consistency but the actual flow uses existing endpoints
+  async forgotPin(params: { phone: string }): Promise<{ success: true; message: string }> {
+    // This method is not used - the flow uses checkPhone instead
+    // Kept for API consistency
+    return this.checkPhone({ phone: params.phone, role: 'driver' }).then(() => ({
+      success: true as const,
+      message: 'OTP sent',
+    }));
+  }
+
+  async resetPin(params: { phone: string; code: string; pin: string }): Promise<{ success: true; message: string }> {
+    // This method is not used - the flow uses verifyOtp + setPin instead
+    // Kept for API consistency
+    return this.setPin({ phone: params.phone, pin: params.pin }).then(() => ({
+      success: true as const,
+      message: 'PIN reset successfully',
+    }));
   }
 
   // async assignShipment(
