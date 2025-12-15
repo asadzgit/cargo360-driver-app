@@ -153,8 +153,6 @@ class ApiService {
       body: JSON.stringify({ refreshToken }),
     });
 
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    
     // Check content type before parsing JSON
     const contentType = response.headers.get('content-type');
     let data;
@@ -494,15 +492,6 @@ class ApiService {
     return this.makeRequest('/users/drivers', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
-  }
-  async updateDriverShipmentStatus(
-    shipmentId: number,
-    status: 'picked_up' | 'accepted' | 'in_transit' | 'delivered' | 'cancelled'
-  ): Promise<ApiResponse<{ shipment: Shipment }>> {
-    return this.makeRequest(`/shipments/${shipmentId}/status-driver`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
     });
   }
 
