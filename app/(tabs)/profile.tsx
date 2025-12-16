@@ -25,6 +25,9 @@ export default function ProfileScreen() {
   const [formCnic, setFormCnic] = useState('');
   const [formLicense, setFormLicense] = useState('');
   const [formVehicleRegistration, setFormVehicleRegistration] = useState('');
+  
+  // Validation errors
+  const [cnicError, setCnicError] = useState('');
 
   useEffect(() => {
     loadProfile();
@@ -63,9 +66,34 @@ export default function ProfileScreen() {
     setFormVehicleRegistration(userData?.vehicleRegistration || '');
   };
 
+  const handleCnicChange = (value: string) => {
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // Limit to 13 digits
+    const limited = digitsOnly.slice(0, 13);
+    
+    setFormCnic(limited);
+    
+    // Clear error when user starts typing (they're fixing it)
+    if (cnicError) {
+      setCnicError('');
+    }
+  };
+
+  const validateCnic = () => {
+    if (formCnic && formCnic.length > 0 && formCnic.length !== 13) {
+      setCnicError('CNIC must be exactly 13 digits');
+      return false;
+    }
+    setCnicError('');
+    return true;
+  };
+
   const handleToggleEdit = () => {
     setUpdateError('');
     setUpdateSuccess('');
+    setCnicError('');
     if (!editing) {
       initializeFormFields(profile || user);
     }
@@ -75,6 +103,11 @@ export default function ProfileScreen() {
   const handleUpdateProfile = async () => {
     setUpdateError('');
     setUpdateSuccess('');
+
+    // Validate CNIC before submitting
+    if (!validateCnic()) {
+      return;
+    }
 
     const payload: any = {};
     if (formName && formName !== (profile?.name || user?.name || '')) {
@@ -264,12 +297,18 @@ export default function ProfileScreen() {
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.cnic || '-'}</Text>
             ) : (
-              <TextInput
-                style={styles.input}
-                value={formCnic}
-                onChangeText={setFormCnic}
-                placeholder="CNIC number (e.g., 12345-1234567-1)"
-              />
+              <>
+                <TextInput
+                  style={[styles.input, cnicError && styles.inputError]}
+                  value={formCnic}
+                  onChangeText={handleCnicChange}
+                  onBlur={validateCnic}
+                  placeholder="CNIC number (13 digits)"
+                  keyboardType="number-pad"
+                  maxLength={13}
+                />
+                {cnicError ? <Text style={styles.fieldErrorText}>{cnicError}</Text> : null}
+              </>
             )}
           </View>
         </View>
@@ -534,6 +573,15 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderRadius: 8,
     backgroundColor: '#f8fafc',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  fieldErrorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
   },
   logoutButton: {
     flexDirection: 'row',
