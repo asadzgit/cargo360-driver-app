@@ -12,6 +12,10 @@ export interface User {
   role: 'customer' | 'trucker' | 'admin' | 'driver';
   isApproved: boolean;
   isEmailVerified: boolean;
+  company?: string;
+  cnic?: string;
+  license?: string;
+  vehicleRegistration?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -99,6 +103,15 @@ class ApiService {
     const data = await this.parseResponse(response);
 
     if (!response.ok) {
+      // Handle HTML error responses (like 404 pages)
+      if (data?.isHtmlError) {
+        const errorMsg = data.error || 'API endpoint not found';
+        // Provide user-friendly message for DELETE route not found
+        if (errorMsg.includes('Cannot DELETE')) {
+          throw new Error('Remove driver feature is not available on the server yet. Please contact support.');
+        }
+        throw new Error(errorMsg);
+      }
       throw new Error(data?.error || data?.message || 'API request failed');
     }
 
@@ -111,10 +124,23 @@ class ApiService {
       return {};
     }
 
+    // Check if response is HTML (error page) - do this before trying to parse JSON
+    const trimmedText = text.trim();
+    if (trimmedText.startsWith('<!DOCTYPE html>') || trimmedText.startsWith('<html')) {
+      // Extract error message from HTML
+      const match = text.match(/<pre>(.*?)<\/pre>/i) || text.match(/<title>(.*?)<\/title>/i);
+      const errorMsg = match ? match[1].trim() : 'API endpoint not found';
+      return { isHtmlError: true, error: errorMsg };
+    }
+
     try {
       return JSON.parse(text);
     } catch (error) {
-      console.warn('Failed to parse response JSON:', error);
+      // Only log warning if it's not HTML (we already handled HTML above)
+      if (!trimmedText.startsWith('<!DOCTYPE') && !trimmedText.startsWith('<html')) {
+        console.warn('Failed to parse response JSON:', error);
+      }
+      // If it's not HTML and not JSON, return as plain text message
       return { message: text };
     }
   }
@@ -220,6 +246,22 @@ class ApiService {
 
   async getProfile(): Promise<{ user: User }> {
     return this.makeRequest('/auth/me');
+  }
+
+  async updateMe(updates: {
+    name?: string;
+    phone?: string;
+    company?: string;
+    cnic?: string;
+    license?: string;
+    vehicleRegistration?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  }): Promise<{ success: boolean; message: string; user: User }> {
+    return this.makeRequest('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
   }
 
   async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
@@ -492,6 +534,13 @@ class ApiService {
     return this.makeRequest('/users/drivers', {
       method: 'POST',
       body: JSON.stringify(params),
+    });
+  }
+
+  // Broker removes driver
+  async removeDriver(driverId: number): Promise<{ success: boolean; message: string }> {
+    return this.makeRequest(`/users/drivers/${driverId}`, {
+      method: 'DELETE',
     });
   }
 

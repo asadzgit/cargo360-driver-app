@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiService, User } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -40,6 +40,8 @@ export function useDrivers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const lastLoadTimeRef = useRef<number>(0);
+  const loadingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (user) {
@@ -47,9 +49,18 @@ export function useDrivers() {
     }
   }, [user]);
 
-  const loadDrivers = async () => {
+  const loadDrivers = async (force = false) => {
     if (!user) return;
 
+    // Prevent too frequent requests (throttle to at most once per 2 seconds)
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTimeRef.current;
+    if (!force && (loadingRef.current || timeSinceLastLoad < 2000)) {
+      return;
+    }
+
+    loadingRef.current = true;
+    lastLoadTimeRef.current = now;
     setLoading(true);
     setError(null);
     
@@ -92,9 +103,15 @@ export function useDrivers() {
       }
     } catch (err) {
       console.error('Error loading drivers:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load drivers');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load drivers';
+      setError(errorMessage);
+      // Don't show rate limit errors as critical - just log them
+      if (errorMessage.includes('Too many requests')) {
+        console.warn('Rate limited - will retry on next focus');
+      }
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -111,6 +128,17 @@ export function useDrivers() {
       return res;
     } catch (err) {
       console.error('Error adding driver:', err);
+      throw err;
+    }
+  };
+
+  const removeDriver = async (driverId: string) => {
+    try {
+      await apiService.removeDriver(parseInt(driverId));
+      await loadDrivers(true); // Force reload after removal
+    } catch (err) {
+      // Error message is already user-friendly from api.ts
+      console.error('Error removing driver:', err);
       throw err;
     }
   };
@@ -165,6 +193,7 @@ export function useDrivers() {
     loading,
     error,
     addDriver,
+    removeDriver,
     updateDriver,
     approveDriver,
     getDriverById,
