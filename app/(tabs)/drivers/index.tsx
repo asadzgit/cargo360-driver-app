@@ -1,16 +1,29 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useRouter } from 'expo-router';
-import { Plus, User, Phone, MapPin, Map } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { Plus, User, Phone, MapPin, Map, Trash2 } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriversScreen() {
   const { user } = useAuth();
-  const { drivers, addDriver } = useDrivers();
+  const { drivers, addDriver, removeDriver, reload } = useDrivers();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+
+  // Refresh drivers list when screen comes into focus (with debouncing)
+  useFocusEffect(
+    useCallback(() => {
+      // Only reload if not already loading and enough time has passed
+      const timeoutId = setTimeout(() => {
+        reload();
+      }, 500); // Small delay to debounce rapid focus changes
+      
+      return () => clearTimeout(timeoutId);
+    }, [reload])
+  );
 
   if (user?.role !== 'trucker') {
     return (
@@ -40,6 +53,33 @@ export default function DriversScreen() {
       case 'on_journey': return 'On Journey';
       default: return 'Unknown';
     }
+  };
+
+  const handleRemoveDriver = (driverId: string, driverName: string) => {
+    Alert.alert(
+      'Remove Driver',
+      `Are you sure you want to remove ${driverName}? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeDriver(driverId);
+              // The list will automatically refresh via useFocusEffect
+            } catch (error: any) {
+              console.error('Error removing driver:', error);
+              const errorMessage = error?.message || error?.error || 'Failed to remove driver. Please try again.';
+              Alert.alert('Error', errorMessage);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -76,9 +116,9 @@ export default function DriversScreen() {
         ) : (
           <View style={styles.driversList}>
             {drivers.map((driver) => (
+              <View key={driver.id} style={styles.driverCard}>
               <TouchableOpacity
-                key={driver.id}
-                style={styles.driverCard}
+                  style={styles.driverCardContent}
                 onPress={() => router.push(`/drivers/${driver.id}`)}
               >
                 <View style={styles.driverHeader}>
@@ -104,6 +144,13 @@ export default function DriversScreen() {
                   </View>
                 </View>
               </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveDriver(driver.id, driver.name)}
+                >
+                  <Trash2 size={18} color="#dc2626" />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         )}
@@ -211,9 +258,14 @@ const styles = StyleSheet.create({
   driverCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  driverCardContent: {
+    flex: 1,
+    padding: 16,
   },
   driverHeader: {
     flexDirection: 'row',
@@ -261,5 +313,13 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     textAlign: 'center',
     marginTop: 100,
+  },
+  removeButton: {
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: '#e2e8f0',
+    backgroundColor: '#fef2f2',
   },
 });

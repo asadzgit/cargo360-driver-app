@@ -11,6 +11,10 @@ interface User {
   phone: string;
   isApproved: boolean;
   isEmailVerified: boolean;
+  company?: string;
+  cnic?: string;
+  license?: string;
+  vehicleRegistration?: string;
   // Legacy fields for backward compatibility
   companyName?: string;
   driverId?: string;
@@ -21,6 +25,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   authReady: boolean;
+  setUser: (user: User | null) => Promise<void>;
   login: (email: string, password: string, role?: 'customer' | 'trucker' | 'driver') => Promise<void>;
   loginDriver: (email: string, password: string) => Promise<void>;
   register: (userData: {
@@ -183,11 +188,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = async (newUser: User | null) => {
+    setUser(newUser);
+    if (newUser) {
+      await AsyncStorage.setItem('user', JSON.stringify(newUser));
+    } else {
+      await AsyncStorage.removeItem('user');
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
       isLoading,
       authReady,
+      setUser: updateUser,
       login,
       loginDriver,
       register,

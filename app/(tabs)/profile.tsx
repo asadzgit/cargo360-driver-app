@@ -1,15 +1,157 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Building, Phone, MapPin, Mail, Contact } from 'lucide-react-native';
+import { LogOut, User, Building, Phone, MapPin, Mail, Contact, Pencil, Save, X, FileText, Car } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
+import { apiService } from '@/services/api';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
-  console.log(user);
+  const { user, logout, setUser } = useAuth();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+
+  const [profile, setProfile] = useState(user || null);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState('');
+  const [updateSuccess, setUpdateSuccess] = useState('');
+
+  // Form fields
+  const [formName, setFormName] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formCompany, setFormCompany] = useState('');
+  const [formCnic, setFormCnic] = useState('');
+  const [formLicense, setFormLicense] = useState('');
+  const [formVehicleRegistration, setFormVehicleRegistration] = useState('');
+  
+  // Validation errors
+  const [cnicError, setCnicError] = useState('');
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  useEffect(() => {
+    if (user && !profile) {
+      setProfile(user);
+      initializeFormFields(user);
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const { user: profileData } = await apiService.getProfile();
+      setProfile(profileData);
+      initializeFormFields(profileData);
+    } catch (e) {
+      console.error('Failed to load profile:', e);
+      if (user) {
+        setProfile(user);
+        initializeFormFields(user);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const initializeFormFields = (userData: any) => {
+    setFormName(userData?.name || '');
+    setFormPhone(userData?.phone || '');
+    setFormCompany(userData?.company || '');
+    setFormCnic(userData?.cnic || '');
+    setFormLicense(userData?.license || '');
+    setFormVehicleRegistration(userData?.vehicleRegistration || '');
+  };
+
+  const handleCnicChange = (value: string) => {
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // Limit to 13 digits
+    const limited = digitsOnly.slice(0, 13);
+    
+    setFormCnic(limited);
+    
+    // Clear error when user starts typing (they're fixing it)
+    if (cnicError) {
+      setCnicError('');
+    }
+  };
+
+  const validateCnic = () => {
+    if (formCnic && formCnic.length > 0 && formCnic.length !== 13) {
+      setCnicError('CNIC must be exactly 13 digits');
+      return false;
+    }
+    setCnicError('');
+    return true;
+  };
+
+  const handleToggleEdit = () => {
+    setUpdateError('');
+    setUpdateSuccess('');
+    setCnicError('');
+    if (!editing) {
+      initializeFormFields(profile || user);
+    }
+    setEditing((v) => !v);
+  };
+
+  const handleUpdateProfile = async () => {
+    setUpdateError('');
+    setUpdateSuccess('');
+
+    // Validate CNIC before submitting
+    if (!validateCnic()) {
+      return;
+    }
+
+    const payload: any = {};
+    if (formName && formName !== (profile?.name || user?.name || '')) {
+      payload.name = formName.trim();
+    }
+    if (formPhone !== (profile?.phone || user?.phone || '')) {
+      payload.phone = formPhone.trim();
+    }
+    if (formCompany !== (profile?.company || '')) {
+      payload.company = formCompany.trim();
+    }
+    if (formCnic !== (profile?.cnic || '')) {
+      payload.cnic = formCnic.trim();
+    }
+    if (formLicense !== (profile?.license || '')) {
+      payload.license = formLicense.trim();
+    }
+    if (formVehicleRegistration !== (profile?.vehicleRegistration || '')) {
+      payload.vehicleRegistration = formVehicleRegistration.trim();
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setUpdateError('No changes to update.');
+      return;
+    }
+
+    try {
+      setUpdateLoading(true);
+      const { user: updatedUser } = await apiService.updateMe(payload);
+      setProfile(updatedUser);
+      if (setUser) {
+        await setUser(updatedUser);
+      }
+      setEditing(false);
+      setUpdateSuccess('Profile updated successfully.');
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setUpdateSuccess(''), 3000);
+    } catch (e: any) {
+      setUpdateError(e?.message || 'Failed to update profile.');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -35,23 +177,72 @@ export default function ProfileScreen() {
     );
   };
 
-  const isBroker = user?.role === 'trucker';
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  const displayUser = profile || user;
 
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Text style={styles.title}>Profile</Text>
+        {!editing ? (
+          <TouchableOpacity style={styles.editButton} onPress={handleToggleEdit}>
+            <Pencil size={18} color="#2563eb" />
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.editActions}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.saveButton]}
+              onPress={handleUpdateProfile}
+              disabled={updateLoading}
+            >
+              {updateLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <Save size={18} color="#fff" />
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.cancelButton]}
+              onPress={handleToggleEdit}
+              disabled={updateLoading}
+            >
+              <X size={18} color="#64748b" />
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      {updateError ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{updateError}</Text>
+        </View>
+      ) : null}
+
+      {updateSuccess ? (
+        <View style={styles.successContainer}>
+          <Text style={styles.successText}>{updateSuccess}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
           <User size={48} color="#64748b" />
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user?.name}</Text>
-          {/* <Text style={styles.userRole}>
-            {isBroker ? 'Broker' : `Driver • ID: ${user?.driverId}`}
-          </Text> */}
+          <Text style={styles.userName}>{displayUser?.name}</Text>
         </View>
       </View>
 
@@ -60,15 +251,105 @@ export default function ProfileScreen() {
 
         <View style={styles.detailItem}>
           <View style={styles.detailIcon}>
-            <User size={20} color="#64748b" />
+            <Phone size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
             <Text style={styles.detailLabel}>Phone number</Text>
-            <Text style={styles.detailValue}>{user?.phone}</Text>
+            {!editing ? (
+              <Text style={styles.detailValue}>{displayUser?.phone || '-'}</Text>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={formPhone}
+                onChangeText={setFormPhone}
+                placeholder="Phone number"
+                keyboardType="phone-pad"
+              />
+            )}
           </View>
         </View>
 
-        {/* Additional details can go here */}
+        <View style={styles.detailItem}>
+          <View style={styles.detailIcon}>
+            <Building size={20} color="#64748b" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Company</Text>
+            {!editing ? (
+              <Text style={styles.detailValue}>{displayUser?.company || '-'}</Text>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={formCompany}
+                onChangeText={setFormCompany}
+                placeholder="Company name"
+              />
+            )}
+          </View>
+        </View>
+
+        <View style={styles.detailItem}>
+          <View style={styles.detailIcon}>
+            <FileText size={20} color="#64748b" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>CNIC</Text>
+            {!editing ? (
+              <Text style={styles.detailValue}>{displayUser?.cnic || '-'}</Text>
+            ) : (
+              <>
+                <TextInput
+                  style={[styles.input, cnicError && styles.inputError]}
+                  value={formCnic}
+                  onChangeText={handleCnicChange}
+                  onBlur={validateCnic}
+                  placeholder="CNIC number (13 digits)"
+                  keyboardType="number-pad"
+                  maxLength={13}
+                />
+                {cnicError ? <Text style={styles.fieldErrorText}>{cnicError}</Text> : null}
+              </>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.detailItem}>
+          <View style={styles.detailIcon}>
+            <FileText size={20} color="#64748b" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>License</Text>
+            {!editing ? (
+              <Text style={styles.detailValue}>{displayUser?.license || '-'}</Text>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={formLicense}
+                onChangeText={setFormLicense}
+                placeholder="License number"
+              />
+            )}
+          </View>
+        </View>
+
+        <View style={[styles.detailItem, { borderBottomWidth: 0 }]}>
+          <View style={styles.detailIcon}>
+            <Car size={20} color="#64748b" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Vehicle Registration No</Text>
+            {!editing ? (
+              <Text style={styles.detailValue}>{displayUser?.vehicleRegistration || '-'}</Text>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={formVehicleRegistration}
+                onChangeText={setFormVehicleRegistration}
+                placeholder="Vehicle registration number"
+              />
+            )}
+          </View>
+        </View>
       </View>
 
       {/* Support Section */}
@@ -119,15 +400,97 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     paddingBottom: 24,
   },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#64748b',
+  },
   header: {
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2563eb',
+  },
+  editButtonText: {
+    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  saveButton: {
+    backgroundColor: '#2563eb',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  cancelButtonText: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 14,
+  },
+  successContainer: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#d1fae5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 14,
   },
   profileCard: {
     backgroundColor: '#ffffff',
@@ -156,10 +519,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 4,
-  },
-  userRole: {
-    fontSize: 16,
-    color: '#64748b',
   },
   detailsCard: {
     backgroundColor: '#ffffff',
@@ -204,6 +563,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1e293b',
     fontWeight: '500',
+  },
+  input: {
+    fontSize: 16,
+    color: '#1e293b',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    backgroundColor: '#fef2f2',
+  },
+  fieldErrorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
   },
   logoutButton: {
     flexDirection: 'row',
