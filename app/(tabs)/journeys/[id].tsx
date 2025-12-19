@@ -18,10 +18,15 @@ export default function JourneyDetailScreen() {
   const [completingJourney, setCompletingJourney] = useState(false);
   const { journeys } = useJourneys();
 
-  // Location tracking - only track when journey is in progress
+  // Location tracking - only track when:
+  // 1. User is the assigned driver
+  // 2. Journey is in progress
   const isJourneyInProgress = journey?.status === 'in_progress' ||
   journey?.status === 'in_transit' ||
   journey?.status === 'picked_up';
+  const isUserAssignedDriver = user?.role === 'driver' && journey?.driverId === user.id.toString();
+  const shouldTrackLocation = isUserAssignedDriver && isJourneyInProgress;
+  
   const { 
     hasPermission, 
     currentLocation, 
@@ -30,7 +35,7 @@ export default function JourneyDetailScreen() {
     sendLocationNow 
   } = useLocationTracking({
     shipmentId: journey ? parseInt(journey.id) : null,
-    isTracking: isJourneyInProgress,
+    isTracking: shouldTrackLocation,
   });
 
   useEffect(() => {
