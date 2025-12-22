@@ -12,7 +12,11 @@ export default function AssignDriverScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { journeys, assignDriverToJourney } = useJourneys();
+<<<<<<< Updated upstream
   const { drivers } = useDrivers();
+=======
+  const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
+>>>>>>> Stashed changes
   const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
@@ -26,10 +30,28 @@ export default function AssignDriverScreen() {
     }
   }, [isBroker]);
 
+<<<<<<< Updated upstream
+=======
+  // Refresh drivers list when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reload drivers when screen is focused to ensure latest list is shown
+      const timeoutId = setTimeout(() => {
+        reloadDrivers();
+      }, 300); // Small delay to debounce rapid focus changes
+      
+      return () => clearTimeout(timeoutId);
+    }, [reloadDrivers])
+  );
+
+  // Only show shipments that don't have a driver assigned
+>>>>>>> Stashed changes
   const unassignedJourneys = useMemo(() =>
-    journeys.filter(j => !j.driverId || j.driverName === 'Unassigned' || j.status === 'pending'),
+    journeys.filter(j => !j.driverId),
   [journeys]);
 
+  // Only show drivers who have created their account (have an account as a driver)
+  // The drivers list already contains only drivers that have accounts
   const selectableDrivers = useMemo(() => drivers, [drivers]);
 
   const handleAssign = async (driverId: string) => {

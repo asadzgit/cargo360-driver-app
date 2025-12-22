@@ -1,22 +1,69 @@
+<<<<<<< Updated upstream
 import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+=======
+import { useMemo, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+>>>>>>> Stashed changes
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
+<<<<<<< Updated upstream
 import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
+=======
+import { useFocusEffect } from '@react-navigation/native';
+import { Users, Truck, MapPin, Clock, X, Check, RefreshCw, ArrowLeft } from 'lucide-react-native';
+>>>>>>> Stashed changes
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+<<<<<<< Updated upstream
   const { drivers } = useDrivers();
   const { journeys } = useJourneys();
+=======
+  const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
+  const { journeys, reload: reloadJourneys } = useJourneys();
+>>>>>>> Stashed changes
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
 
   const isBroker = user?.role === 'trucker';
 
+<<<<<<< Updated upstream
+=======
+  // Refresh drivers list when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reload drivers when screen is focused to ensure latest list is shown
+      const timeoutId = setTimeout(() => {
+        reloadDrivers();
+      }, 300); // Small delay to debounce rapid focus changes
+      
+      return () => clearTimeout(timeoutId);
+    }, [reloadDrivers])
+  );
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      // Reload both drivers and journeys
+      await Promise.all([
+        reloadDrivers(true), // Force reload
+        reloadJourneys(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadDrivers, reloadJourneys]);
+
+>>>>>>> Stashed changes
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
@@ -80,10 +127,17 @@ export default function DashboardScreen() {
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | undefined>(undefined);
   const [assigning, setAssigning] = useState(false);
 
+  // Only show shipments that don't have a driver assigned
   const unassignedJourneys = useMemo(() =>
+<<<<<<< Updated upstream
     journeys.filter(j => j.status !== 'in_transit' || !j.driverId || j.driverName === 'Unassigned')
+=======
+    journeys.filter(j => !j.driverId)
+>>>>>>> Stashed changes
   , [journeys]);
 
+  // Only show drivers who have created their account (have an account as a driver)
+  // The drivers list already contains only drivers that have accounts
   const selectableDrivers = useMemo(() => drivers, [drivers]);
 
   const { assignDriverToJourney } = useJourneys();
@@ -106,7 +160,19 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView 
+      ref={scrollRef} 
+      style={styles.container} 
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#2563eb']}
+          tintColor="#2563eb"
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.greeting}>
           {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
@@ -181,7 +247,19 @@ export default function DashboardScreen() {
       )}
 
       <View style={styles.recentActivity}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.recentHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity
+            style={styles.refreshInlineButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw size={16} color="#FFFFFF" />
+            <Text style={styles.refreshInlineText}>
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.activityList}>
           {journeys.slice(0, 3).map((journey, index) => (
             <TouchableOpacity 
@@ -257,13 +335,31 @@ export default function DashboardScreen() {
       </Modal>
 
       {/* Assign Order Bottom Sheet */}
-      <Modal visible={showAssignOrder} transparent animationType="slide" onRequestClose={() => setShowAssignOrder(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssignOrder(false)}>
+      <Modal 
+        visible={showAssignOrder} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => {
+          setShowAssignOrder(false);
+          setSelectedJourneyId(undefined); // Reset to show shipments list next time
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalBackdrop} 
+          activeOpacity={1} 
+          onPress={() => {
+            setShowAssignOrder(false);
+            setSelectedJourneyId(undefined); // Reset to show shipments list next time
+          }}
+        >
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>Assign Driver</Text>
-              <TouchableOpacity onPress={() => setShowAssignOrder(false)}>
+              <TouchableOpacity onPress={() => {
+                setShowAssignOrder(false);
+                setSelectedJourneyId(undefined); // Reset to show shipments list next time
+              }}>
                 <X size={22} color="#334155" />
               </TouchableOpacity>
             </View>
@@ -297,7 +393,15 @@ export default function DashboardScreen() {
 
               {selectedJourneyId && (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Select a Driver</Text>
+                  <View style={styles.sectionHeader}>
+                    <TouchableOpacity 
+                      onPress={() => setSelectedJourneyId(undefined)}
+                      style={styles.backButton}
+                    >
+                      <ArrowLeft size={20} color="#2563eb" />
+                    </TouchableOpacity>
+                    <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Select a Driver</Text>
+                  </View>
                   {selectableDrivers.length === 0 ? (
                     <Text style={styles.muted}>No drivers found. Add a driver first.</Text>
                   ) : (
@@ -391,6 +495,17 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  backButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   actionGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -413,6 +528,27 @@ const styles = StyleSheet.create({
   },
   recentActivity: {
     marginBottom: 24,
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshInlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: -17,
+  },
+  refreshInlineText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   activityList: {
     backgroundColor: '#ffffff',

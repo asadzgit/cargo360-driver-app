@@ -88,6 +88,8 @@ export interface Driver {
   createdAt: string;
   isApproved: boolean;
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
+  hasSignedUp: boolean;
 }
 
 // Form data types

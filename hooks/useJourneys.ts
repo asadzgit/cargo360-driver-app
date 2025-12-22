@@ -39,7 +39,7 @@ const mapShipmentToJourney = (shipment: Shipment): Journey => {
   return {
     id: shipment.id.toString(),
     clientId: shipment.customerId.toString(),
-    driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
+    driverId: shipment.driverId?.toString(), // Only set driverId if there's actually a driver (not trucker)
     driverName: shipment.Driver?.name || shipment.Trucker?.name,
     vehicleType: shipment.vehicleType,
     loadType: shipment.cargoType,

@@ -15,6 +15,8 @@ interface Driver {
   createdAt: string;
   isApproved: boolean;
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
+  hasSignedUp: boolean;
 }
 
 // Map API User to Driver interface for backward compatibility
@@ -32,6 +34,8 @@ const mapUserToDriver = (user: User): Driver => {
     createdAt: user.createdAt || new Date().toISOString(),
     isApproved: user.isApproved,
     isEmailVerified: user.isEmailVerified,
+    isPhoneVerified: user.isPhoneVerified || false,
+    hasSignedUp: user.hasSignedUp || false,
   };
 };
 
@@ -181,11 +185,15 @@ export function useDrivers() {
   };
 
   const getAvailableDrivers = (): Driver[] => {
-    return drivers.filter(driver => 
-      driver.status === 'active' && 
-      driver.isApproved && 
-      driver.isEmailVerified
-    );
+    // Only show drivers who have signed up AND verified their account (OTP or email)
+    // Drivers who haven't verified OTP are considered non-account holders
+    return drivers.filter(driver => {
+      // Must have signed up
+      if (driver.hasSignedUp !== true) return false;
+      // Must have verified either phone (OTP) or email
+      const isVerified = driver.isPhoneVerified === true || driver.isEmailVerified === true;
+      return isVerified;
+    });
   };
 
   return {
