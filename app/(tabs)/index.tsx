@@ -1,21 +1,34 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
-  const { drivers } = useDrivers();
+  const { drivers, reload: reloadDrivers } = useDrivers();
   const { journeys } = useJourneys();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
+
+  // Refresh drivers list when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Reload drivers when screen is focused to ensure latest list is shown
+      const timeoutId = setTimeout(() => {
+        reloadDrivers();
+      }, 300); // Small delay to debounce rapid focus changes
+      
+      return () => clearTimeout(timeoutId);
+    }, [reloadDrivers])
+  );
 
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
@@ -69,6 +82,8 @@ export default function DashboardScreen() {
       setShowAddDriver(false);
       setDriverName('');
       setDriverPhone('');
+      // Explicitly reload drivers to ensure the new driver appears in assign order list
+      await reloadDrivers();
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to add driver.');
     } finally {
@@ -81,7 +96,7 @@ export default function DashboardScreen() {
   const [assigning, setAssigning] = useState(false);
 
   const unassignedJourneys = useMemo(() =>
-    journeys.filter(j => j.status !== 'in_transit' || !j.driverId || j.driverName === 'Unassigned')
+    journeys.filter(j => !j.driverId || j.driverName === 'Unassigned' || j.status === 'pending')
   , [journeys]);
 
   const selectableDrivers = useMemo(() => drivers, [drivers]);
@@ -558,5 +573,9 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 12,
     marginTop: 4,
+  },
+  muted: {
+    color: '#64748b',
+    fontSize: 14,
   },
 });
