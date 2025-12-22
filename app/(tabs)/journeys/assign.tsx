@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useDrivers } from '@/hooks/useDrivers';
+import { useFocusEffect } from '@react-navigation/native';
 import { ArrowLeft, User, MapPin, Truck, Check } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
@@ -12,11 +13,7 @@ export default function AssignDriverScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { journeys, assignDriverToJourney } = useJourneys();
-<<<<<<< Updated upstream
-  const { drivers } = useDrivers();
-=======
   const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
->>>>>>> Stashed changes
   const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
@@ -30,8 +27,6 @@ export default function AssignDriverScreen() {
     }
   }, [isBroker]);
 
-<<<<<<< Updated upstream
-=======
   // Refresh drivers list when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -45,14 +40,12 @@ export default function AssignDriverScreen() {
   );
 
   // Only show shipments that don't have a driver assigned
->>>>>>> Stashed changes
   const unassignedJourneys = useMemo(() =>
     journeys.filter(j => !j.driverId),
   [journeys]);
 
-  // Only show drivers who have created their account (have an account as a driver)
-  // The drivers list already contains only drivers that have accounts
-  const selectableDrivers = useMemo(() => drivers, [drivers]);
+  // Only show drivers who have signed up and verified their account
+  const selectableDrivers = useMemo(() => getAvailableDrivers(), [drivers]);
 
   const handleAssign = async (driverId: string) => {
     if (!selectedJourneyId) {

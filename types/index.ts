@@ -89,7 +89,7 @@ export interface Driver {
   isApproved: boolean;
   isEmailVerified: boolean;
   isPhoneVerified?: boolean;
-  hasSignedUp: boolean;
+  hasSignedUp?: boolean; // Optional to handle old data where it might be undefined
 }
 
 // Form data types

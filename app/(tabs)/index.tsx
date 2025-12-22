@@ -1,40 +1,24 @@
-<<<<<<< Updated upstream
-import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
-=======
 import { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from 'react-native';
->>>>>>> Stashed changes
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-<<<<<<< Updated upstream
-import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
-=======
 import { useFocusEffect } from '@react-navigation/native';
 import { Users, Truck, MapPin, Clock, X, Check, RefreshCw, ArrowLeft } from 'lucide-react-native';
->>>>>>> Stashed changes
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
   const { user } = useAuth();
-<<<<<<< Updated upstream
-  const { drivers } = useDrivers();
-  const { journeys } = useJourneys();
-=======
   const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
   const { journeys, reload: reloadJourneys } = useJourneys();
->>>>>>> Stashed changes
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
   const [refreshing, setRefreshing] = useState(false);
 
   const isBroker = user?.role === 'trucker';
 
-<<<<<<< Updated upstream
-=======
   // Refresh drivers list when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -62,8 +46,6 @@ export default function DashboardScreen() {
       setRefreshing(false);
     }
   }, [reloadDrivers, reloadJourneys]);
-
->>>>>>> Stashed changes
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
@@ -129,16 +111,11 @@ export default function DashboardScreen() {
 
   // Only show shipments that don't have a driver assigned
   const unassignedJourneys = useMemo(() =>
-<<<<<<< Updated upstream
-    journeys.filter(j => j.status !== 'in_transit' || !j.driverId || j.driverName === 'Unassigned')
-=======
     journeys.filter(j => !j.driverId)
->>>>>>> Stashed changes
   , [journeys]);
 
-  // Only show drivers who have created their account (have an account as a driver)
-  // The drivers list already contains only drivers that have accounts
-  const selectableDrivers = useMemo(() => drivers, [drivers]);
+  // Only show drivers who have signed up and verified their account
+  const selectableDrivers = useMemo(() => getAvailableDrivers(), [drivers]);
 
   const { assignDriverToJourney } = useJourneys();
   const handleAssign = async (driverId: string) => {
@@ -694,5 +671,9 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 12,
     marginTop: 4,
+  },
+  muted: {
+    color: '#64748b',
+    fontSize: 14,
   },
 });
