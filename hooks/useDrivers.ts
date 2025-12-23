@@ -15,6 +15,8 @@ interface Driver {
   createdAt: string;
   isApproved: boolean;
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
+  hasSignedUp?: boolean; // Optional to handle old data where it might be undefined
 }
 
 // Map API User to Driver interface for backward compatibility
@@ -32,6 +34,8 @@ const mapUserToDriver = (user: User): Driver => {
     createdAt: user.createdAt || new Date().toISOString(),
     isApproved: user.isApproved,
     isEmailVerified: user.isEmailVerified,
+    isPhoneVerified: user.isPhoneVerified ?? false,
+    hasSignedUp: user.hasSignedUp, // Can be true, false, or undefined (for old data)
   };
 };
 
@@ -93,10 +97,21 @@ export function useDrivers() {
         // Trucker/Moderator: list their drivers via API
         const res: any = await apiService.getMyDrivers();
         // Support multiple possible response shapes
+        // API returns: { success: true, data: { count, drivers } }
         const driverUsers: User[] = Array.isArray(res)
           ? res
-          : res?.drivers || res?.users || res?.data?.drivers || res?.data?.users || [];
-        setDrivers(driverUsers.map(mapUserToDriver));
+          : res?.data?.drivers || res?.drivers || res?.users || res?.data?.users || [];
+        console.log('[useDrivers] Raw API response:', JSON.stringify(res, null, 2));
+        console.log('[useDrivers] Extracted drivers:', driverUsers.length);
+        const mapped = driverUsers.map(mapUserToDriver);
+        console.log('[useDrivers] Mapped drivers:', mapped.map(d => ({ 
+          id: d.id, 
+          name: d.name, 
+          hasSignedUp: d.hasSignedUp, 
+          isPhoneVerified: d.isPhoneVerified, 
+          isEmailVerified: d.isEmailVerified 
+        })));
+        setDrivers(mapped);
       } else {
         // For drivers, they only see themselves
         setDrivers([mapUserToDriver(user)]);
@@ -181,11 +196,43 @@ export function useDrivers() {
   };
 
   const getAvailableDrivers = (): Driver[] => {
-    return drivers.filter(driver => 
-      driver.status === 'active' && 
-      driver.isApproved && 
-      driver.isEmailVerified
-    );
+    // Only show drivers who have signed up AND verified their account (OTP or email)
+    // Drivers who haven't verified OTP are considered non-account holders
+    // If hasSignedUp is not set (undefined for old data), check verification status (verified = signed up)
+    const filtered = drivers.filter(driver => {
+      // Must have verified either phone (OTP) or email
+      const isVerified = driver.isPhoneVerified === true || driver.isEmailVerified === true;
+      if (!isVerified) {
+        return false; // Not verified = no account
+      }
+      
+      // Check if driver has signed up
+      // If hasSignedUp is explicitly false, exclude them (added by broker, hasn't signed up)
+      // If hasSignedUp is undefined (old data before migration), consider verified drivers as signed up
+      // If hasSignedUp is null, treat same as undefined (old data)
+      if (driver.hasSignedUp === false) {
+        return false; // Explicitly not signed up
+      }
+      
+      // hasSignedUp is true OR undefined/null (old data) - if verified, they have an account
+      return true;
+    });
+    
+    // Debug logging
+    console.log('[getAvailableDrivers] Total drivers:', drivers.length);
+    console.log('[getAvailableDrivers] Filtered drivers:', filtered.length);
+    if (drivers.length > 0) {
+      console.log('[getAvailableDrivers] Driver details:', drivers.map(d => ({
+        id: d.id,
+        name: d.name,
+        hasSignedUp: d.hasSignedUp,
+        isPhoneVerified: d.isPhoneVerified,
+        isEmailVerified: d.isEmailVerified,
+        passed: filtered.some(f => f.id === d.id)
+      })));
+    }
+    
+    return filtered;
   };
 
   return {

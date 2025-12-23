@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Users, Truck, MapPin, Clock, X, Check, RefreshCw, ArrowLeft } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
@@ -37,7 +38,6 @@ export default function DashboardScreen() {
       setRefreshing(false);
     }
   }, [reloadDrivers, reloadJourneys]);
-
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
@@ -106,11 +106,13 @@ export default function DashboardScreen() {
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | undefined>(undefined);
   const [assigning, setAssigning] = useState(false);
 
+  // Only show shipments that don't have a driver assigned
   const unassignedJourneys = useMemo(() =>
     journeys.filter(j => !j.driverId || j.driverName === 'Unassigned' || j.driverName === t('journeyDetails.unassigned'))
   , [journeys, t]);
 
-  const selectableDrivers = useMemo(() => drivers, [drivers]);
+  // Only show drivers who have signed up and verified their account
+  const selectableDrivers = useMemo(() => getAvailableDrivers(), [drivers]);
 
   const { assignDriverToJourney } = useJourneys();
   const handleAssign = async (driverId: string) => {
@@ -132,7 +134,19 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView 
+      ref={scrollRef} 
+      style={styles.container} 
+      contentContainerStyle={styles.contentContainer}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#2563eb']}
+          tintColor="#2563eb"
+        />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.greeting}>
           {isBroker ? t('dashboard.brokerDashboard') : t('dashboard.driverDashboard')}
@@ -298,8 +312,23 @@ export default function DashboardScreen() {
       </Modal>
 
       {/* Assign Order Bottom Sheet */}
-      <Modal visible={showAssignOrder} transparent animationType="slide" onRequestClose={() => setShowAssignOrder(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowAssignOrder(false)}>
+      <Modal 
+        visible={showAssignOrder} 
+        transparent 
+        animationType="slide" 
+        onRequestClose={() => {
+          setShowAssignOrder(false);
+          setSelectedJourneyId(undefined); // Reset to show shipments list next time
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalBackdrop} 
+          activeOpacity={1} 
+          onPress={() => {
+            setShowAssignOrder(false);
+            setSelectedJourneyId(undefined); // Reset to show shipments list next time
+          }}
+        >
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHandle} />
@@ -446,6 +475,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  backButton: {
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   actionGrid: {
     flexDirection: 'row',
