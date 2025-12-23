@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useRouter } from 'expo-router';
@@ -8,6 +10,8 @@ import { Plus, User, Phone, MapPin, Map, Trash2 } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriversScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useAuth();
   const { drivers, addDriver, removeDriver, reload } = useDrivers();
   const router = useRouter();
@@ -28,7 +32,7 @@ export default function DriversScreen() {
   if (user?.role !== 'trucker') {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Access denied. Broker access required.</Text>
+        <Text style={styles.errorText}>{t('drivers.accessDenied')}</Text>
       </View>
     );
   }
@@ -48,24 +52,46 @@ export default function DriversScreen() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return 'Available';
-      case 'inactive': return 'Offline';
-      case 'on_journey': return 'On Journey';
-      default: return 'Unknown';
+      case 'active': return t('drivers.available');
+      case 'inactive': return t('drivers.offline');
+      case 'on_journey': return t('drivers.onJourney');
+      default: return t('drivers.unknown');
     }
+  };
+
+  // Transliterate driver name to Urdu if language is Urdu
+  const translateDriverName = (name: string) => {
+    if (language === 'ur') {
+      // Basic transliteration mapping for common English to Urdu
+      const transliterationMap: { [key: string]: string } = {
+        'a': 'ا', 'b': 'ب', 'c': 'ک', 'd': 'د', 'e': 'ی', 'f': 'ف',
+        'g': 'گ', 'h': 'ہ', 'i': 'ی', 'j': 'ج', 'k': 'ک', 'l': 'ل',
+        'm': 'م', 'n': 'ن', 'o': 'و', 'p': 'پ', 'q': 'ق', 'r': 'ر',
+        's': 'س', 't': 'ت', 'u': 'و', 'v': 'و', 'w': 'و', 'x': 'کس',
+        'y': 'ی', 'z': 'ز'
+      };
+      
+      // Simple transliteration - convert each character
+      return name
+        .toLowerCase()
+        .split('')
+        .map(char => transliterationMap[char] || char)
+        .join('');
+    }
+    return name;
   };
 
   const handleRemoveDriver = (driverId: string, driverName: string) => {
     Alert.alert(
-      'Remove Driver',
-      `Are you sure you want to remove ${driverName}? This action cannot be undone.`,
+      t('drivers.removeDriver'),
+      t('drivers.areYouSureRemoveDriver', { name: driverName }),
       [
         {
-          text: 'Cancel',
+          text: t('drivers.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Remove',
+          text: t('drivers.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -73,8 +99,8 @@ export default function DriversScreen() {
               // The list will automatically refresh via useFocusEffect
             } catch (error: any) {
               console.error('Error removing driver:', error);
-              const errorMessage = error?.message || error?.error || 'Failed to remove driver. Please try again.';
-              Alert.alert('Error', errorMessage);
+              const errorMessage = error?.message || error?.error || t('drivers.failedToRemoveDriver');
+              Alert.alert(t('dashboard.error'), errorMessage);
             }
           },
         },
@@ -85,7 +111,7 @@ export default function DriversScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Drivers</Text>
+        <Text style={styles.title}>{t('drivers.drivers')}</Text>
       </View>
 
       <View style={styles.headerButtons}>
@@ -96,7 +122,7 @@ export default function DriversScreen() {
          {drivers.length != 0 && 
           <TouchableOpacity style={styles.addButton} onPress={handleAddDriver}>
             <Plus size={20} color="#ffffff" />
-            <Text style={styles.addButtonText}>Add Driver</Text>
+            <Text style={styles.addButtonText}>{t('drivers.addDriver')}</Text>
           </TouchableOpacity>
         }
       </View>
@@ -105,12 +131,12 @@ export default function DriversScreen() {
         {drivers.length === 0 ? (
           <View style={styles.emptyState}>
             <User size={64} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>No Drivers Yet</Text>
+            <Text style={styles.emptyTitle}>{t('drivers.noDriversYet')}</Text>
             <Text style={styles.emptySubtitle}>
-              Add your first driver to start managing orders
+              {t('drivers.addYourFirstDriver')}
             </Text>
             <TouchableOpacity style={styles.emptyButton} onPress={handleAddDriver}>
-              <Text style={styles.emptyButtonText}>Add Driver</Text>
+              <Text style={styles.emptyButtonText}>{t('drivers.addDriver')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -123,7 +149,7 @@ export default function DriversScreen() {
               >
                 <View style={styles.driverHeader}>
                   <View style={styles.driverInfo}>
-                    <Text style={styles.driverName}>{driver.name}</Text>
+                    <Text style={styles.driverName}>{translateDriverName(driver.name)}</Text>
                     <Text style={styles.driverId}>ID: {driver.driverId}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(driver.status) }]}>
@@ -139,7 +165,7 @@ export default function DriversScreen() {
                   <View style={styles.detailItem}>
                     <MapPin size={16} color="#64748b" />
                     <Text style={styles.detailText}>
-                      {driver.currentLocation || 'Location not available'}
+                      {driver.currentLocation || t('drivers.locationNotAvailable')}
                     </Text>
                   </View>
                 </View>

@@ -1,25 +1,51 @@
-import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert, RefreshControl } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-import { Users, Truck, MapPin, Clock, X, Check } from 'lucide-react-native';
+import { Users, Truck, MapPin, Clock, X, Check, RefreshCw, ArrowLeft } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function DashboardScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const { user } = useAuth();
-  const { drivers } = useDrivers();
-  const { journeys } = useJourneys();
+  const { drivers, reload: reloadDrivers } = useDrivers();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
 
   const isBroker = user?.role === 'trucker';
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      // Reload both drivers and journeys
+      await Promise.all([
+        reloadDrivers(true), // Force reload
+        reloadJourneys(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadDrivers, reloadJourneys]);
 
   const activeDrivers = drivers.filter(d => d.status === 'active');
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
+
+  const getStatusText = (status: string) => {
+    // Return raw status value without translation
+    return status;
+  };
 
   // For drivers, filter journeys by their ID and use proper status mapping
   const driverActiveJourneys = journeys.filter(j => 
@@ -50,27 +76,27 @@ export default function DashboardScreen() {
 
   const handleAddDriver = async () => {
     if (!driverName || !driverPhone) {
-      Alert.alert('Error', 'Please provide driver name and phone number');
+      Alert.alert(t('dashboard.error'), t('dashboard.pleaseProvideDriverNameAndPhone'));
       return;
     }
 
     // Validate phone number
     const validation = validatePakistaniPhone(driverPhone);
     if (!validation.isValid) {
-      setDriverPhoneError(validation.error || 'Invalid phone number');
-      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
+      setDriverPhoneError(validation.error || t('auth.invalidPhoneNumber'));
+      Alert.alert(t('auth.invalidPhoneNumber'), validation.error || t('auth.enterValidPakistaniPhone'));
       return;
     }
     setAddingDriver(true);
     try {
       const res: any = await addDriver({ name: driverName, phone: driverPhone });
-      const message = res?.message || 'Driver added and OTP sent.';
-      Alert.alert('Success', message);
+      const message = res?.message || t('dashboard.driverAddedAndOTPSent');
+      Alert.alert(t('dashboard.success'), message);
       setShowAddDriver(false);
       setDriverName('');
       setDriverPhone('');
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to add driver.');
+      Alert.alert(t('dashboard.error'), e?.message || t('dashboard.failedToAddDriver'));
     } finally {
       setAddingDriver(false);
     }
@@ -81,25 +107,25 @@ export default function DashboardScreen() {
   const [assigning, setAssigning] = useState(false);
 
   const unassignedJourneys = useMemo(() =>
-    journeys.filter(j => j.status !== 'in_transit' || !j.driverId || j.driverName === 'Unassigned')
-  , [journeys]);
+    journeys.filter(j => !j.driverId || j.driverName === 'Unassigned' || j.driverName === t('journeyDetails.unassigned'))
+  , [journeys, t]);
 
   const selectableDrivers = useMemo(() => drivers, [drivers]);
 
   const { assignDriverToJourney } = useJourneys();
   const handleAssign = async (driverId: string) => {
     if (!selectedJourneyId) {
-      Alert.alert('Select journey', 'Please select a journey first');
+      Alert.alert(t('dashboard.selectJourney'), t('dashboard.selectJourney'));
       return;
     }
     setAssigning(true);
     try {
       await assignDriverToJourney(selectedJourneyId, driverId);
-      Alert.alert('Assigned', 'Driver has been assigned to the journey');
+      Alert.alert(t('dashboard.assigned'), t('dashboard.assigned'));
       setShowAssignOrder(false);
       setSelectedJourneyId(undefined);
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to assign');
+      Alert.alert(t('dashboard.error'), e?.message || t('dashboard.failedToAssign'));
     } finally {
       setAssigning(false);
     }
@@ -109,7 +135,7 @@ export default function DashboardScreen() {
     <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <Text style={styles.greeting}>
-          {isBroker ? 'Broker Dashboard' : 'Driver Dashboard'}
+          {isBroker ? t('dashboard.brokerDashboard') : t('dashboard.driverDashboard')}
         </Text>
         <Text style={styles.welcomeText}>
           {/* Welcome back, {user?.name} */}
@@ -128,13 +154,13 @@ export default function DashboardScreen() {
             <View style={[styles.statCard, styles.secondaryCard]}>
               <Truck size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{activeJourneys.length}</Text>
-              <Text style={styles.statLabel}>Active Orders</Text>
+              <Text style={styles.statLabel}>{t('dashboard.activeOrders')}</Text>
             </View>
 
             <View style={[styles.statCard, styles.warningCard]}>
               <Clock size={32} color="#ffffff" />
               <Text style={styles.statNumber}>{pendingJourneys.length}</Text>
-              <Text style={styles.statLabel}>Pending Orders</Text>
+              <Text style={styles.statLabel}>{t('dashboard.pendingOrders')}</Text>
             </View>
           </>
         ) : (
@@ -144,7 +170,7 @@ export default function DashboardScreen() {
               <Text style={styles.statNumber}>
                 {driverActiveJourneys.length}
               </Text>
-              <Text style={styles.statLabel}>Active Orders</Text>
+              <Text style={styles.statLabel}>{t('dashboard.activeOrders')}</Text>
             </View>
 
             <View style={[styles.statCard, styles.primaryCard]}>
@@ -152,7 +178,7 @@ export default function DashboardScreen() {
               <Text style={styles.statNumber}>
                 {driverCompletedJourneys.length}
               </Text>
-              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statLabel}>{t('dashboard.completed')}</Text>
             </View>
           </>
         )}
@@ -160,28 +186,40 @@ export default function DashboardScreen() {
 
       {isBroker && (
         <View style={styles.quickActions}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
           <View style={styles.actionGrid}>
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => setShowAddDriver(true)}
             >
               <Users size={24} color="#2563eb" />
-              <Text style={styles.actionText}>Add Driver</Text>
+              <Text style={styles.actionText}>{t('dashboard.addDriver')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionCard}
               onPress={() => setShowAssignOrder(true)}
             >
               <Truck size={24} color="#2563eb" />
-              <Text style={styles.actionText}>Assign Order</Text>
+              <Text style={styles.actionText}>{t('dashboard.assignOrder')}</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
       <View style={styles.recentActivity}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        <View style={styles.recentHeader}>
+          <Text style={styles.sectionTitle}>{t('dashboard.recentActivity')}</Text>
+          <TouchableOpacity
+            style={styles.refreshInlineButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw size={16} color="#FFFFFF" />
+            <Text style={styles.refreshInlineText}>
+              {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.activityList}>
           {journeys.slice(0, 3).map((journey, index) => (
             <TouchableOpacity 
@@ -194,12 +232,15 @@ export default function DashboardScreen() {
               </View>
               <View style={styles.activityContent}>
                 <Text style={styles.activityTitle}>
-                  Order C360-PK-#{journey.id}
+                  {t('dashboard.order')} C360-PK-#{journey.id}
                 </Text>
                 <Text style={styles.activitySubtitle}>
-                  {journey.fromLocation} → {journey.toLocation}
+                  <Text style={styles.boldLabel}>{t('dashboard.fromLabel')}</Text> {journey.fromLocation} {' -> '}
+                  <Text style={styles.boldLabel}>{t('dashboard.toLabel')}</Text> {journey.toLocation}
                 </Text>
-                <Text style={styles.activityTime}>Status: {journey.status}</Text>
+                <Text style={styles.activityTime}>
+                  <Text style={styles.boldLabel}>{t('dashboard.status')}:</Text> {journey.status}
+                </Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -212,7 +253,7 @@ export default function DashboardScreen() {
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Add New Driver</Text>
+              <Text style={styles.sheetTitle}>{t('dashboard.addNewDriver')}</Text>
               <TouchableOpacity onPress={() => setShowAddDriver(false)}>
                 <X size={22} color="#334155" />
               </TouchableOpacity>
@@ -220,22 +261,22 @@ export default function DashboardScreen() {
 
             <View style={{ gap: 12 }}>
               <View>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={styles.label}>{t('auth.fullName')}</Text>
                 <TextInput
                   style={styles.input}
                   value={driverName}
                   onChangeText={setDriverName}
-                  placeholder="Enter driver's full name"
+                  placeholder={t('dashboard.enterDriversFullName')}
                 />
               </View>
 
               <View>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
                 <TextInput
                   style={[styles.input, driverPhoneError && styles.inputError]}
                   value={driverPhone}
                   onChangeText={handleDriverPhoneChange}
-                  placeholder="e.g. 03001234567, 923001234567, or +923001234567"
+                  placeholder={t('auth.phonePlaceholderExtended')}
                   keyboardType="phone-pad"
                   autoCapitalize="none"
                 />
@@ -248,7 +289,7 @@ export default function DashboardScreen() {
                 disabled={addingDriver}
               >
                 <Text style={styles.primaryButtonText}>
-                  {addingDriver ? 'Adding Driver...' : 'Add Driver'}
+                  {addingDriver ? t('dashboard.addingDriver') : t('dashboard.addDriver')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -262,8 +303,11 @@ export default function DashboardScreen() {
           <View style={styles.bottomSheet}>
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Assign Driver</Text>
-              <TouchableOpacity onPress={() => setShowAssignOrder(false)}>
+              <Text style={styles.sheetTitle}>{t('dashboard.assignDriver')}</Text>
+              <TouchableOpacity onPress={() => {
+                setShowAssignOrder(false);
+                setSelectedJourneyId(undefined); // Reset to show shipments list next time
+              }}>
                 <X size={22} color="#334155" />
               </TouchableOpacity>
             </View>
@@ -271,9 +315,9 @@ export default function DashboardScreen() {
             <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
               {!selectedJourneyId && (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Select a Journey</Text>
+                  <Text style={styles.sectionTitle}>{t('dashboard.selectAJourney')}</Text>
                   {unassignedJourneys.length === 0 ? (
-                    <Text style={styles.muted}>No unassigned journeys</Text>
+                    <Text style={styles.muted}>{t('dashboard.noUnassignedJourneys')}</Text>
                   ) : (
                     unassignedJourneys.map(j => (
                       <TouchableOpacity key={j.id} style={styles.listItem} onPress={() => setSelectedJourneyId(j.id)}>
@@ -281,11 +325,15 @@ export default function DashboardScreen() {
                           <Text style={styles.itemTitle}>#{j.id} • {j.loadType}</Text>
                           <View style={styles.inline}>
                             <MapPin size={14} color="#059669" />
-                            <Text style={styles.itemSub}>From: {j.fromLocation}</Text>
+                            <Text style={styles.itemSub}>
+                              <Text style={styles.boldLabel}>{t('dashboard.fromLabel')}</Text> {j.fromLocation}
+                            </Text>
                           </View>
                           <View style={styles.inline}>
                             <MapPin size={14} color="#dc2626" />
-                            <Text style={styles.itemSub}>To: {j.toLocation}</Text>
+                            <Text style={styles.itemSub}>
+                              <Text style={styles.boldLabel}>{t('dashboard.toLabel')}</Text> {j.toLocation}
+                            </Text>
                           </View>
                         </View>
                         <Check size={18} color="#059669" />
@@ -297,9 +345,17 @@ export default function DashboardScreen() {
 
               {selectedJourneyId && (
                 <View style={styles.card}>
-                  <Text style={styles.sectionTitle}>Select a Driver</Text>
+                  <View style={styles.sectionHeader}>
+                    <TouchableOpacity 
+                      onPress={() => setSelectedJourneyId(undefined)}
+                      style={styles.backButton}
+                    >
+                      <ArrowLeft size={20} color="#2563eb" />
+                    </TouchableOpacity>
+                    <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('dashboard.selectADriver')}</Text>
+                  </View>
                   {selectableDrivers.length === 0 ? (
-                    <Text style={styles.muted}>No drivers found. Add a driver first.</Text>
+                    <Text style={styles.muted}>{t('dashboard.noDriversFound')}</Text>
                   ) : (
                     selectableDrivers.map(d => (
                       <TouchableOpacity key={d.id} style={styles.listItem} disabled={assigning} onPress={() => handleAssign(d.id)}>
@@ -414,6 +470,35 @@ const styles = StyleSheet.create({
   recentActivity: {
     marginBottom: 24,
   },
+  recentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshInlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  refreshInlineText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  backButton: {
+    padding: 4,
+  },
   activityList: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
@@ -448,6 +533,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     marginBottom: 2,
+  },
+  boldLabel: {
+    fontWeight: '700',
+    color: '#1e293b',
   },
   activityTime: {
     fontSize: 12,
@@ -558,5 +647,11 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 12,
     marginTop: 4,
+  },
+  muted: {
+    color: '#64748b',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });

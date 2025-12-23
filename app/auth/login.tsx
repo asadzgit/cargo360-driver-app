@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,7 +18,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('auth.error'), t('auth.pleaseTryAgain'));
       return;
     }
 
@@ -22,7 +27,7 @@ export default function LoginScreen() {
       await login(email, password, 'trucker');
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      Alert.alert(t('auth.brokerLogin'), t('auth.pleaseTryAgain'));
     } finally {
       setLoading(false);
     }
@@ -30,33 +35,36 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <ArrowLeft size={24} color="#64748b" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#64748b" />
+        </TouchableOpacity>
+        <LanguageToggle />
+      </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Broker Login</Text>
-        <Text style={styles.subtitle}>Welcome back! Please sign in to continue</Text>
+        <Text style={styles.title}>{t('auth.brokerLogin')}</Text>
+        <Text style={styles.subtitle}>{t('auth.welcomeBack')}</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="Enter your email"
+            placeholder={t('auth.enterEmail')}
             keyboardType="email-address"
             autoCapitalize="none"
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('auth.password')}</Text>
           <TextInput
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="Enter your password"
+            placeholder={t('auth.enterPassword')}
             secureTextEntry
           />
         </View>
@@ -67,7 +75,7 @@ export default function LoginScreen() {
           disabled={loading}
         >
           <Text style={styles.loginButtonText}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('auth.signingIn') : t('auth.signIn')}
           </Text>
         </TouchableOpacity>
 
@@ -76,7 +84,7 @@ export default function LoginScreen() {
           onPress={() => router.push('/auth/register')}
         >
           <Text style={styles.registerText}>
-            Don't have an account? <Text style={styles.registerLinkText}>Register</Text>
+            {t('auth.dontHaveAccount')} <Text style={styles.registerLinkText}>{t('auth.register')}</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -91,10 +99,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  backButton: {
+    padding: 8,
   },
   form: {
     flex: 1,

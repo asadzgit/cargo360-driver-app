@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function DriverSignupScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,46 +35,46 @@ export default function DriverSignupScreen() {
     const { name, email, phone, password, confirmPassword } = formData;
     
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter your full name');
+      Alert.alert(t('auth.error'), t('auth.enterFullName'));
       return false;
     }
     
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert(t('auth.error'), t('auth.enterEmail'));
       return false;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert(t('auth.error'), t('auth.enterEmail'));
       return false;
     }
     
     if (!phone.trim()) {
-      Alert.alert('Error', 'Please enter your phone number');
+      Alert.alert(t('auth.error'), t('auth.enterPhoneNumber'));
       return false;
     }
     
     // Validate Pakistani phone number
     const phoneValidation = validatePakistaniPhone(phone);
     if (!phoneValidation.isValid) {
-      setPhoneError(phoneValidation.error || 'Invalid phone number');
-      Alert.alert('Invalid Phone Number', phoneValidation.error || 'Please enter a valid Pakistani phone number');
+      setPhoneError(phoneValidation.error || t('auth.invalidPhoneNumber'));
+      Alert.alert(t('auth.invalidPhoneNumber'), phoneValidation.error || t('auth.enterValidPakistaniPhone'));
       return false;
     }
     
     if (!password) {
-      Alert.alert('Error', 'Please enter a password');
+      Alert.alert(t('auth.error'), t('auth.enterPassword'));
       return false;
     }
     
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('auth.error'), t('auth.enterPassword'));
       return false;
     }
     
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t('auth.error'), t('auth.confirmYourPassword'));
       return false;
     }
     
@@ -90,8 +95,8 @@ export default function DriverSignupScreen() {
       });
       
       Alert.alert(
-        'Registration Successful',
-        'Your driver account has been created and is pending approval. You will be notified once approved.',
+        t('auth.createAccount'),
+        t('auth.accountReviewNote'),
         [
           {
             text: 'OK',
@@ -101,8 +106,8 @@ export default function DriverSignupScreen() {
       );
     } catch (error) {
       Alert.alert(
-        'Registration Failed',
-        error instanceof Error ? error.message : 'Failed to create account. Please try again.'
+        t('auth.signupFailed'),
+        error instanceof Error ? error.message : t('auth.pleaseTryAgain')
       );
     } finally {
       setLoading(false);
@@ -111,67 +116,70 @@ export default function DriverSignupScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <ArrowLeft size={24} color="#64748b" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#64748b" />
+        </TouchableOpacity>
+        <LanguageToggle />
+      </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Driver Registration</Text>
-        <Text style={styles.subtitle}>Create your driver account</Text>
+        <Text style={styles.title}>{t('auth.driverRegistration')}</Text>
+        <Text style={styles.subtitle}>{t('auth.createDriverAccount')}</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>{t('auth.fullName')}</Text>
           <TextInput
             style={styles.input}
             value={formData.name}
             onChangeText={(value) => handleInputChange('name', value)}
-            placeholder="Enter your full name"
+            placeholder={t('auth.enterFullName')}
             autoCapitalize="words"
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
-            placeholder="Enter your email"
+            placeholder={t('auth.enterEmail')}
             autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone Number</Text>
+          <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
           <TextInput
             style={[styles.input, phoneError && styles.inputError]}
             value={formData.phone}
             onChangeText={(value) => handleInputChange('phone', value)}
-            placeholder="e.g. 03001234567, 923001234567, or +923001234567"
+            placeholder={t('auth.phonePlaceholderExtended')}
             keyboardType="phone-pad"
           />
           {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('auth.password')}</Text>
           <TextInput
             style={styles.input}
             value={formData.password}
             onChangeText={(value) => handleInputChange('password', value)}
-            placeholder="Enter your password"
+            placeholder={t('auth.enterPassword')}
             secureTextEntry
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirm Password</Text>
+          <Text style={styles.label}>{t('auth.confirmPassword')}</Text>
           <TextInput
             style={styles.input}
             value={formData.confirmPassword}
             onChangeText={(value) => handleInputChange('confirmPassword', value)}
-            placeholder="Confirm your password"
+            placeholder={t('auth.confirmYourPassword')}
             secureTextEntry
           />
         </View>
@@ -182,22 +190,22 @@ export default function DriverSignupScreen() {
           disabled={loading}
         >
           <Text style={styles.signupButtonText}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpText}>
-            Already have an account?
+            {t('auth.alreadyHaveAccount')}
           </Text>
           <TouchableOpacity onPress={() => router.back()} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Sign in here</Text>
+            <Text style={styles.loginButtonText}>{t('auth.signInHere')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.noteContainer}>
           <Text style={styles.noteText}>
-            Note: Your account will be reviewed and approved by an administrator before you can start accepting shipments.
+            {t('auth.accountReviewNote')}
           </Text>
         </View>
       </View>
@@ -212,10 +220,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  backButton: {
+    padding: 8,
   },
   form: {
     paddingBottom: 40,

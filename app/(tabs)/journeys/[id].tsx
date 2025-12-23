@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map } from 'lucide-react-native';
@@ -9,6 +11,8 @@ import { apiService } from '@/services/api';
 import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
 
 export default function JourneyDetailScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useAuth();
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -50,7 +54,12 @@ export default function JourneyDetailScreen() {
       // First try to find the journey in the cached journeys
       const cachedJourney = journeys.find(j => j.id === id);
       if (cachedJourney) {
-        setJourney(cachedJourney);
+        // Normalize cached journey to ensure notes field exists
+        const normalizedJourney = {
+          ...cachedJourney,
+          notes: cachedJourney.notes || (cachedJourney as any).description,
+        };
+        setJourney(normalizedJourney);
         setLoading(false);
         return;
       }
@@ -65,9 +74,9 @@ export default function JourneyDetailScreen() {
       const mappedJourney = {
         id: shipment.id.toString(),
         clientId: shipment.customerId.toString(),
-        clientName: shipment.Customer?.name || 'Unknown Client',
+        clientName: shipment.Customer?.name || t('journeyDetails.unknownClient'),
         driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
-        driverName: shipment.Driver?.name || shipment.Trucker?.name || 'Unassigned',
+        driverName: shipment.Driver?.name || shipment.Trucker?.name || t('journeyDetails.unassigned'),
         vehicleType: shipment.vehicleType,
         loadType: shipment.cargoType,
         fromLocation: shipment.pickupLocation,
@@ -108,14 +117,31 @@ export default function JourneyDetailScreen() {
   };
 
   const humanizeStatus = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'pending': 'Pending Assignment',
-      'assigned': 'Assigned to Driver',
-      'in_progress': 'In Transit',
-      'completed': 'Delivered',
-      'cancelled': 'Cancelled',
-    };
-    return statusMap[status] || status;
+    // Return raw status value without translation
+    return status;
+  };
+
+  // Transliterate names to Urdu if language is Urdu
+  const translateName = (name: string | null | undefined) => {
+    if (!name) return name || '';
+    if (language === 'ur') {
+      // Basic transliteration mapping for common English to Urdu
+      const transliterationMap: { [key: string]: string } = {
+        'a': 'ا', 'b': 'ب', 'c': 'ک', 'd': 'د', 'e': 'ی', 'f': 'ف',
+        'g': 'گ', 'h': 'ہ', 'i': 'ی', 'j': 'ج', 'k': 'ک', 'l': 'ل',
+        'm': 'م', 'n': 'ن', 'o': 'و', 'p': 'پ', 'q': 'ق', 'r': 'ر',
+        's': 'س', 't': 'ت', 'u': 'و', 'v': 'و', 'w': 'و', 'x': 'کس',
+        'y': 'ی', 'z': 'ز'
+      };
+      
+      // Simple transliteration - convert each character
+      return name
+        .toLowerCase()
+        .split('')
+        .map(char => transliterationMap[char] || char)
+        .join('');
+    }
+    return name;
   };
 
   const calculateEstimatedDuration = (from: string, to: string): string => {
@@ -162,12 +188,12 @@ export default function JourneyDetailScreen() {
     // Check location permission before starting journey
     if (!hasPermission) {
       Alert.alert(
-        'Location Permission Required',
-        'Location tracking is required during the journey to provide real-time updates. Please grant location permission.',
+        t('journeyDetails.locationPermissionRequired'),
+        t('journeyDetails.locationTrackingRequired'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('profile.cancel'), style: 'cancel' },
           { 
-            text: 'Grant Permission', 
+            text: t('journeyDetails.grantPermission'), 
             onPress: async () => {
               await requestLocationPermission();
             }
@@ -203,15 +229,15 @@ export default function JourneyDetailScreen() {
       await startBackgroundLocationTracking(parseInt(journey.id));
       
       Alert.alert(
-        'Journey Started',
-        'Your journey has been started. GPS tracking will continue hourly even in the background.',
+        t('journeyDetails.journeyStarted'),
+        t('journeyDetails.journeyStartedMessage'),
         [{ text: 'OK' }]
       );
     } catch (error) {
       console.error('Error starting journey:', error);
       Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to start journey. Please try again.'
+        t('dashboard.error'),
+        error instanceof Error ? error.message : t('journeyDetails.failedToStartJourney')
       );
     } finally {
       setStartingJourney(false);
@@ -247,15 +273,15 @@ export default function JourneyDetailScreen() {
       setJourney(updatedJourney);
       
       Alert.alert(
-        'Journey Completed',
-        'Your journey has been completed. GPS background tracking has been stopped.',
+        t('journeyDetails.journeyCompleted'),
+        t('journeyDetails.journeyCompletedMessage'),
         [{ text: 'OK' }]
       );
     } catch (error) {
       console.error('Error completing journey:', error);
       Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'Failed to complete journey. Please try again.'
+        t('dashboard.error'),
+        error instanceof Error ? error.message : t('journeyDetails.failedToCompleteJourney')
       );
     } finally {
       setCompletingJourney(false);
@@ -273,19 +299,19 @@ export default function JourneyDetailScreen() {
     const appleMapsUrl = `http://maps.apple.com/?saddr=${origin}&daddr=${destination}&dirflg=d`;
     
     Alert.alert(
-      'Open in Maps',
-      'Choose your preferred maps application:',
+      t('journeyDetails.openInMapsTitle'),
+      t('journeyDetails.choosePreferredMaps'),
       [
         {
-          text: 'Google Maps',
+          text: t('journeyDetails.googleMaps'),
           onPress: () => Linking.openURL(googleMapsUrl),
         },
         {
-          text: 'Apple Maps',
+          text: t('journeyDetails.appleMaps'),
           onPress: () => Linking.openURL(appleMapsUrl),
         },
         {
-          text: 'Cancel',
+          text: t('profile.cancel'),
           style: 'cancel',
         },
       ]
@@ -299,9 +325,9 @@ export default function JourneyDetailScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Journey Details</Text>
+          <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
         </View>
-        <Text style={styles.loadingText}>Loading journey details...</Text>
+        <Text style={styles.loadingText}>{t('journeyDetails.loadingJourneyDetails')}</Text>
       </View>
     );
   }
@@ -313,9 +339,9 @@ export default function JourneyDetailScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <ArrowLeft size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Journey Details</Text>
+          <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
         </View>
-        <Text style={styles.loadingText}>Journey not found</Text>
+        <Text style={styles.loadingText}>{t('journeyDetails.journeyNotFound')}</Text>
       </View>
     );
   }
@@ -329,7 +355,7 @@ export default function JourneyDetailScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.title}>Journey Details</Text>
+        <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
       </View>
 
       <View style={styles.journeyCard}>
@@ -341,22 +367,22 @@ export default function JourneyDetailScreen() {
         </View>
 
         <View style={styles.clientInfo}>
-          <Text style={styles.clientName}>{journey.clientName}</Text>
+          <Text style={styles.clientName}>{translateName(journey.clientName)}</Text>
           <Text style={styles.loadInfo}>{journey.loadType} • {journey.vehicleType}</Text>
           {journey.budget && (
-            <Text style={styles.budgetInfo}>Budget: ${journey.budget}</Text>
+            <Text style={styles.budgetInfo}>{t('journeyDetails.budget')}: ${journey.budget}</Text>
           )}
         </View>
       </View>
 
       <View style={styles.routeCard}>
-        <Text style={styles.sectionTitle}>Route Information</Text>
+        <Text style={styles.sectionTitle}>{t('journeyDetails.routeInformation')}</Text>
         
         <View style={styles.routeDetails}>
           <View style={styles.locationItem}>
             <MapPin size={20} color="#059669" />
             <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Pickup Location</Text>
+              <Text style={styles.locationLabel}>{t('journeyDetails.pickupLocation')}</Text>
               <Text style={styles.locationValue}>{journey.fromLocation}</Text>
             </View>
           </View>
@@ -366,7 +392,7 @@ export default function JourneyDetailScreen() {
           <View style={styles.locationItem}>
             <Target size={20} color="#dc2626" />
             <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>Delivery Location</Text>
+              <Text style={styles.locationLabel}>{t('journeyDetails.deliveryLocation')}</Text>
               <Text style={styles.locationValue}>{journey.toLocation}</Text>
             </View>
           </View>
@@ -375,35 +401,35 @@ export default function JourneyDetailScreen() {
         <View style={styles.routeStats}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{journey.distance}</Text>
-            <Text style={styles.statLabel}>Distance</Text>
+            <Text style={styles.statLabel}>{t('journeyDetails.distance')}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{journey.estimatedDuration}</Text>
-            <Text style={styles.statLabel}>Est. Duration</Text>
+            <Text style={styles.statLabel}>{t('journeyDetails.estDuration')}</Text>
           </View>
           {journey.cargoWeight && (
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{journey.cargoWeight}kg</Text>
-              <Text style={styles.statLabel}>Weight</Text>
+              <Text style={styles.statLabel}>{t('journeyDetails.weight')}</Text>
             </View>
           )}
         </View>
       </View>
 
       <View style={styles.assignmentCard}>
-        <Text style={styles.sectionTitle}>Assignment Details</Text>
+        <Text style={styles.sectionTitle}>{t('journeyDetails.assignmentDetails')}</Text>
         
         <View style={styles.assignmentInfo}>
           <View style={styles.infoRow}>
             <User size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>Driver:</Text>
-            <Text style={styles.infoValue}>{journey.driverName}</Text>
+            <Text style={styles.infoLabel}>{t('journeyDetails.driver')}</Text>
+            <Text style={styles.infoValue}>{translateName(journey.driverName)}</Text>
           </View>
           
           {journey.assignedAt && (
             <View style={styles.infoRow}>
               <Clock size={16} color="#64748b" />
-              <Text style={styles.infoLabel}>Assigned:</Text>
+              <Text style={styles.infoLabel}>{t('journeyDetails.assigned')}</Text>
               <Text style={styles.infoValue}>
                 {new Date(journey.assignedAt).toLocaleDateString()}
               </Text>
@@ -412,23 +438,23 @@ export default function JourneyDetailScreen() {
 
           <View style={styles.infoRow}>
             <Truck size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>Vehicle:</Text>
+            <Text style={styles.infoLabel}>{t('journeyDetails.vehicle')}</Text>
             <Text style={styles.infoValue}>{journey.vehicleType}</Text>
           </View>
 
           <View style={styles.infoRow}>
             <Clock size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>Created:</Text>
+            <Text style={styles.infoLabel}>{t('journeyDetails.created')}</Text>
             <Text style={styles.infoValue}>
               {new Date(journey.createdAt).toLocaleDateString()}
             </Text>
           </View>
         </View>
 
-        {journey.notes && (
+        {(journey.notes || (journey as any).description) && (
           <View style={styles.notesContainer}>
-            <Text style={styles.notesTitle}>Description</Text>
-            <Text style={styles.notesText}>{journey.notes}</Text>
+            <Text style={styles.notesTitle}>{t('journeyDetails.description')}</Text>
+            <Text style={styles.notesText}>{translateName(journey.notes || (journey as any).description)}</Text>
           </View>
         )}
       </View>
@@ -443,7 +469,7 @@ export default function JourneyDetailScreen() {
             >
               <Navigation size={20} color="#ffffff" />
               <Text style={styles.startJourneyButtonText}>
-                {startingJourney ? 'Starting Journey...' : 'Start Journey'}
+                {startingJourney ? t('journeyDetails.startingJourney') : t('journeyDetails.startJourney')}
               </Text>
             </TouchableOpacity>
           )}
@@ -456,7 +482,7 @@ export default function JourneyDetailScreen() {
             >
               <Target size={20} color="#ffffff" />
               <Text style={styles.completeJourneyButtonText}>
-                {completingJourney ? 'Completing Journey...' : 'Complete Journey'}
+                {completingJourney ? t('journeyDetails.completingJourney') : t('journeyDetails.completeJourney')}
               </Text>
             </TouchableOpacity>
           )}
@@ -466,7 +492,7 @@ export default function JourneyDetailScreen() {
             onPress={handleOpenInMaps}
           >
             <Map size={20} color="#2563eb" />
-            <Text style={styles.mapsButtonText}>Open in Maps</Text>
+            <Text style={styles.mapsButtonText}>{t('journeyDetails.openInMaps')}</Text>
           </TouchableOpacity>
           
           {/* Location tracking status */}
@@ -474,11 +500,11 @@ export default function JourneyDetailScreen() {
             <View style={styles.trackingStatus}>
               <View style={[styles.trackingIndicator, { backgroundColor: isLocationEnabled ? '#10b981' : '#ef4444' }]} />
               <Text style={styles.trackingStatusText}>
-                GPS Tracking: {isLocationEnabled ? 'Active' : 'Inactive'}
+                {t('journeyDetails.gpsTracking')} {isLocationEnabled ? t('journeyDetails.active') : t('journeyDetails.inactive')}
               </Text>
               {currentLocation && (
                 <Text style={styles.lastLocationText}>
-                  Last update: {new Date(currentLocation.timestamp).toLocaleTimeString()}
+                  {t('journeyDetails.lastUpdate')} {new Date(currentLocation.timestamp).toLocaleTimeString()}
                 </Text>
               )}
             </View>
@@ -486,10 +512,10 @@ export default function JourneyDetailScreen() {
           
           <Text style={styles.actionNote}>
             {journey.status === 'assigned' 
-              ? 'Start your journey to begin GPS tracking and update status to in-transit'
+              ? t('journeyDetails.startJourneyNote')
               : journey.status === 'in_progress'
-              ? 'GPS tracking is active. Complete your journey when you have delivered the cargo'
-              : 'Use maps for navigation assistance'
+              ? t('journeyDetails.gpsTrackingActiveNote')
+              : t('journeyDetails.useMapsForNavigation')
             }
           </Text>
         </View>
@@ -497,15 +523,15 @@ export default function JourneyDetailScreen() {
 
       {isBroker && (
         <View style={styles.adminActions}>
-          <Text style={styles.sectionTitle}>Admin Actions</Text>
+          <Text style={styles.sectionTitle}>{t('journeyDetails.adminActions')}</Text>
           <TouchableOpacity 
             style={styles.adminButton}
             onPress={() => router.push(`/(tabs)/journeys/client-view?journeyId=${journey.id}`)}
           >
-            <Text style={styles.adminButtonText}>Preview Client View</Text>
+            <Text style={styles.adminButtonText}>{t('journeyDetails.previewClientView')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.adminButton}>
-            <Text style={styles.adminButtonText}>Contact Driver</Text>
+            <Text style={styles.adminButtonText}>{t('journeyDetails.contactDriver')}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.shareButton}
@@ -513,17 +539,17 @@ export default function JourneyDetailScreen() {
               const clientUrl = `/client-tracking?journey=${journey.id}`;
               if (navigator.share) {
                 navigator.share({
-                  title: 'Track Your Delivery',
-                  text: 'Track your delivery in real-time',
+                  title: t('journeys.trackYourDelivery'),
+                  text: t('journeys.trackDeliveryRealTime'),
                   url: clientUrl,
                 });
               } else {
                 navigator.clipboard.writeText(clientUrl);
-                Alert.alert('Link Copied', 'Client tracking link copied to clipboard');
+                Alert.alert(t('journeys.linkCopied'), t('journeys.clientTrackingLinkCopied'));
               }
             }}
           >
-            <Text style={styles.shareButtonText}>Share Client Tracking Link</Text>
+            <Text style={styles.shareButtonText}>{t('journeyDetails.shareClientTrackingLink')}</Text>
           </TouchableOpacity>
         </View>
       )}
