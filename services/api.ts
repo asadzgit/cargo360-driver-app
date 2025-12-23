@@ -12,6 +12,8 @@ export interface User {
   role: 'customer' | 'trucker' | 'admin' | 'driver';
   isApproved: boolean;
   isEmailVerified: boolean;
+  isPhoneVerified?: boolean;
+  hasSignedUp?: boolean;
   company?: string;
   cnic?: string;
   license?: string;
