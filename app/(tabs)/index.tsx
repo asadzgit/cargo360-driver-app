@@ -15,7 +15,7 @@ export default function DashboardScreen() {
   const { t } = useTranslation();
   const { language } = useLanguage(); // Force re-render when language changes
   const { user } = useAuth();
-  const { drivers, reload: reloadDrivers } = useDrivers();
+  const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
   const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
@@ -529,15 +529,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  backButton: {
-    padding: 4,
   },
   activityList: {
     backgroundColor: '#ffffff',

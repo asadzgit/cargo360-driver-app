@@ -117,8 +117,14 @@ export default function JourneyDetailScreen() {
   };
 
   const humanizeStatus = (status: string) => {
-    // Return raw status value without translation
-    return status;
+    const statusMap: Record<string, string> = {
+      'pending': 'Pending Assignment',
+      'assigned': 'Assigned to Driver',
+      'in_progress': 'In Transit',
+      'completed': 'Delivered',
+      'cancelled': 'Cancelled',
+    };
+    return statusMap[status] || status;
   };
 
   // Transliterate names to Urdu if language is Urdu

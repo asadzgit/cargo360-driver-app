@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -11,9 +12,22 @@ export default function JourneysScreen() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { journeys } = useJourneys();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await reloadJourneys();
+    } catch (error) {
+      console.error('Error refreshing journeys:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadJourneys]);
 
   const isBroker = user?.role === 'trucker';
   const userJourneys = journeys 
@@ -34,8 +48,14 @@ export default function JourneysScreen() {
   };
 
   const getStatusText = (status: string) => {
-    // Return raw status value without translation
-    return status;
+    switch (status) {
+      case 'pending': return 'Pending Assignment';
+      case 'assigned': return 'Assigned';
+      case 'in_progress': return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return 'Unknown';
+    }
   };
 
   return (
@@ -52,7 +72,17 @@ export default function JourneysScreen() {
         )} */}
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        ref={scrollRef} 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
         {userJourneys.length === 0 ? (
           <View style={styles.emptyState}>
             <Truck size={64} color="#cbd5e1" />
@@ -77,7 +107,7 @@ export default function JourneysScreen() {
                     router.push(`/journeys/${journey.id}`);
                   } else {
                     // For drivers, go directly to live tracking if assigned
-                    if (journey.driverId === user?.id && journey.status !== 'completed') {
+                    if (journey.driverId === user?.id?.toString() && journey.status !== 'completed') {
                       router.push(`/journeys/live-tracking?journeyId=${journey.id}`);
                     } else {
                       router.push(`/(tabs)/journeys/${journey.id}`);

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -16,18 +16,31 @@ export default function DriversScreen() {
   const { drivers, addDriver, removeDriver, reload } = useDrivers();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Refresh drivers list when screen comes into focus (with debouncing)
+  // Refresh drivers list when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      // Only reload if not already loading and enough time has passed
+      // Reload drivers when screen is focused to ensure latest list is shown
       const timeoutId = setTimeout(() => {
         reload();
-      }, 500); // Small delay to debounce rapid focus changes
-      
+      }, 300); // Small delay to debounce rapid focus changes
+
       return () => clearTimeout(timeoutId);
     }, [reload])
   );
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await reload(true); // Force reload
+    } catch (error) {
+      console.error('Error refreshing drivers:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reload]);
 
   if (user?.role !== 'trucker') {
     return (
@@ -127,7 +140,17 @@ export default function DriversScreen() {
         }
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        ref={scrollRef} 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
         {drivers.length === 0 ? (
           <View style={styles.emptyState}>
             <User size={64} color="#cbd5e1" />
