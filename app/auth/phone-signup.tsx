@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/api';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function PhoneSignupScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const { phone: phoneParam, role: roleParam } = useLocalSearchParams<{ phone?: string; role?: 'trucker' | 'driver' }>();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState(phoneParam || '');
@@ -23,15 +28,15 @@ export default function PhoneSignupScreen() {
 
   const onSubmit = async () => {
     if (!name.trim() || !phone) {
-      Alert.alert('Missing fields', 'Please enter your name and phone');
+      Alert.alert(t('auth.missingFields'), t('auth.enterNameAndPhone'));
       return;
     }
 
     // Validate phone number
     const validation = validatePakistaniPhone(phone);
     if (!validation.isValid) {
-      setPhoneError(validation.error || 'Invalid phone number');
-      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
+      setPhoneError(validation.error || t('auth.invalidPhoneNumber'));
+      Alert.alert(t('auth.invalidPhoneNumber'), validation.error || t('auth.enterValidPakistaniPhone'));
       return;
     }
     setLoading(true);
@@ -39,7 +44,7 @@ export default function PhoneSignupScreen() {
       await apiService.phoneSignup({ name: name.trim(), phone, role });
       router.replace({ pathname: '/auth/verify-otp', params: { phone } });
     } catch (e: any) {
-      Alert.alert('Signup failed', e?.message || 'Please try again');
+      Alert.alert(t('auth.signupFailed'), e?.message || t('auth.pleaseTryAgain'));
     } finally {
       setLoading(false);
     }
@@ -47,28 +52,31 @@ export default function PhoneSignupScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sign up</Text>
-      <Text style={styles.subtitle}>Create your {role === 'driver' ? 'Driver' : 'Broker'} account</Text>
+      <View style={styles.header}>
+        <LanguageToggle />
+      </View>
+      <Text style={styles.title}>{t('auth.signUp')}</Text>
+      <Text style={styles.subtitle}>{t('auth.createAccountFor', { role: role === 'driver' ? t('auth.driver') : t('auth.broker') })}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Full Name</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Your name" />
+        <Text style={styles.label}>{t('auth.fullName')}</Text>
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={t('auth.yourName')} />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Phone</Text>
+        <Text style={styles.label}>{t('auth.phone')}</Text>
         <TextInput 
           style={[styles.input, phoneError && styles.inputError]} 
           value={phone} 
           onChangeText={handlePhoneChange} 
-          placeholder="e.g. 03001234567, 923001234567, or +923001234567" 
+          placeholder={t('auth.phonePlaceholderExtended')} 
           keyboardType="phone-pad" 
         />
         {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
       </View>
 
       <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={onSubmit} disabled={loading}>
-        <Text style={styles.ctaText}>{loading ? 'Please wait...' : 'Continue'}</Text>
+        <Text style={styles.ctaText}>{loading ? t('auth.pleaseWait') : t('auth.continue')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -76,6 +84,7 @@ export default function PhoneSignupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 100 },
+  header: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 },
   title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },

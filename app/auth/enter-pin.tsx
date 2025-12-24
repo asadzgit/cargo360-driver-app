@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { Eye, EyeOff } from 'lucide-react-native';
 
 export default function EnterPinScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const { phone: phoneParam } = useLocalSearchParams<{ phone?: string }>();
   const [phone] = useState(phoneParam || '');
   const [pin, setPin] = useState('');
@@ -15,7 +20,7 @@ export default function EnterPinScreen() {
 
   const onSubmit = async () => {
     if (pin.length !== 6) {
-      Alert.alert('Invalid PIN', 'PIN must be 6 digits');
+      Alert.alert(t('auth.invalidPin'), t('auth.pinMustBe6Digits'));
       return;
     }
     setLoading(true);
@@ -23,7 +28,7 @@ export default function EnterPinScreen() {
       await phoneLogin(phone, pin);
       router.replace('/(tabs)');
     } catch (e: any) {
-      Alert.alert('Login failed', e?.message || 'Please try again');
+      Alert.alert(t('auth.loginFailed'), e?.message || t('auth.pleaseTryAgain'));
     } finally {
       setLoading(false);
     }
@@ -31,18 +36,23 @@ export default function EnterPinScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter PIN</Text>
-      <Text style={styles.subtitle}>Enter your 6-digit PIN for {phone}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{t('auth.enterPin')}</Text>
+        <View style={styles.smallToggle}>
+          <LanguageToggle />
+        </View>
+      </View>
+      <Text style={styles.subtitle}>{t('auth.enterYourPin', { phone })}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>PIN</Text>
+        <Text style={styles.label}>{t('auth.pin')}</Text>
         <View style={styles.rowContainer}>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
               value={pin}
               onChangeText={setPin}
-              placeholder="Enter your PIN"
+              placeholder={t('auth.enterYourPinPlaceholder')}
               placeholderTextColor="#9ca3af"
               keyboardType="number-pad"
               maxLength={6}
@@ -66,7 +76,7 @@ export default function EnterPinScreen() {
             onPress={onSubmit} 
             disabled={loading}
           >
-            <Text style={styles.ctaText}>{loading ? '...' : 'Sign In'}</Text>
+            <Text style={styles.ctaText}>{loading ? '...' : t('auth.signIn')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -75,7 +85,7 @@ export default function EnterPinScreen() {
         onPress={() => router.push('/auth/forgot-pin')} 
         style={{ alignSelf: 'flex-end', marginTop: 12 }}
       >
-        <Text style={{ color: '#059669', fontWeight: '600' }}>Forgot PIN?</Text>
+        <Text style={{ color: '#059669', fontWeight: '600' }}>{t('auth.forgotPin')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -83,6 +93,14 @@ export default function EnterPinScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 100 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  smallToggle: {
+    transform: [{ scale: 0.9 }],
+  },
   title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },

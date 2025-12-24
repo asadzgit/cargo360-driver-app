@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/api';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function PhoneEntryScreen() {
+  const { t, i18n } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [role, setRole] = useState<'trucker' | 'driver'>('driver');
@@ -21,15 +26,15 @@ export default function PhoneEntryScreen() {
 
   const handleContinue = async () => {
     if (!phone) {
-      Alert.alert('Missing phone', 'Please enter your phone number');
+      Alert.alert(t('auth.missingPhone'), t('auth.enterPhoneNumber'));
       return;
     }
 
     // Validate phone number
     const validation = validatePakistaniPhone(phone);
     if (!validation.isValid) {
-      setPhoneError(validation.error || 'Invalid phone number');
-      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
+      setPhoneError(validation.error || t('auth.invalidPhoneNumber'));
+      Alert.alert(t('auth.invalidPhoneNumber'), validation.error || t('auth.enterValidPakistaniPhone'));
       return;
     }
 
@@ -50,10 +55,10 @@ export default function PhoneEntryScreen() {
           router.push({ pathname: '/auth/enter-pin', params: { phone } });
           break;
         default:
-          Alert.alert('Unexpected response', 'Please try again.');
+          Alert.alert(t('auth.unexpectedResponse'), t('auth.tryAgain'));
       }
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to check phone.');
+      Alert.alert(t('auth.error'), e?.message || t('auth.failedToCheckPhone'));
     } finally {
       setLoading(false);
     }
@@ -61,6 +66,9 @@ export default function PhoneEntryScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <LanguageToggle />
+      </View>
       <View style={styles.logoContainer}>
         <Image 
           source={require('@/assets/images/cargo-icon.png')} 
@@ -69,16 +77,16 @@ export default function PhoneEntryScreen() {
         />
       </View>
       
-      <Text style={styles.title}>Sign in with phone</Text>
-      <Text style={styles.subtitle}>Enter your phone to continue</Text>
+      <Text style={styles.title}>{t('auth.signInWithPhone')}</Text>
+      <Text style={styles.subtitle}>{t('auth.enterPhoneToContinue')}</Text>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Phone</Text>
+        <Text style={styles.label}>{t('auth.phone')}</Text>
         <TextInput
           style={[styles.input, phoneError && styles.inputError]}
           value={phone}
           onChangeText={handlePhoneChange}
-          placeholder="e.g. +923001234567"
+          placeholder={t('auth.phonePlaceholder')}
           keyboardType="phone-pad"
           autoCapitalize="none"
         />
@@ -90,18 +98,18 @@ export default function PhoneEntryScreen() {
           style={[styles.roleButton, role === 'driver' && styles.roleButtonActive]}
           onPress={() => setRole('driver')}
         >
-          <Text style={[styles.roleText, role === 'driver' && styles.roleTextActive]}>Driver</Text>
+          <Text style={[styles.roleText, role === 'driver' && styles.roleTextActive]}>{t('auth.driver')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.roleButton, role === 'trucker' && styles.roleButtonActive]}
           onPress={() => setRole('trucker')}
         >
-          <Text style={[styles.roleText, role === 'trucker' && styles.roleTextActive]}>Broker</Text>
+          <Text style={[styles.roleText, role === 'trucker' && styles.roleTextActive]}>{t('auth.broker')}</Text>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={[styles.cta, loading && styles.disabled]} onPress={handleContinue} disabled={loading}>
-        <Text style={styles.ctaText}>{loading ? 'Please wait...' : 'Continue'}</Text>
+        <Text style={styles.ctaText}>{loading ? t('auth.pleaseWait') : t('auth.continue')}</Text>
       </TouchableOpacity>
 
       {/* <TouchableOpacity onPress={() => router.push('/auth/login')} style={styles.altLink}>
@@ -113,6 +121,14 @@ export default function PhoneEntryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 24, paddingTop: 60 },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'flex-end', 
+    alignItems: 'center',
+    marginBottom: 16,
+    width: '100%',
+    zIndex: 10,
+  },
   logoContainer: { alignItems: 'center', marginBottom: 32 },
   logo: { width: 120, height: 120 },
   title: { fontSize: 28, fontWeight: '700', color: '#1e293b' },

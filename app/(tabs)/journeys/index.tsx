@@ -1,4 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
@@ -6,10 +9,25 @@ import { Plus, Truck, MapPin, Clock, User } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function JourneysScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const { user } = useAuth();
-  const { journeys } = useJourneys();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await reloadJourneys();
+    } catch (error) {
+      console.error('Error refreshing journeys:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadJourneys]);
 
   const isBroker = user?.role === 'trucker';
   const userJourneys = journeys 
@@ -44,7 +62,7 @@ export default function JourneysScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          {isBroker ? 'Journey Assignments' : 'My Journeys'}
+          {isBroker ? t('journeys.journeyAssignments') : t('journeys.myJourneys')}
         </Text>
         {/* {isBroker && (
           <TouchableOpacity style={styles.addButton} onPress={() => router.push('/journeys/assign')}>
@@ -54,17 +72,27 @@ export default function JourneysScreen() {
         )} */}
       </View>
 
-      <ScrollView ref={scrollRef} style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        ref={scrollRef} 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
         {userJourneys.length === 0 ? (
           <View style={styles.emptyState}>
             <Truck size={64} color="#cbd5e1" />
             <Text style={styles.emptyTitle}>
-              {isBroker ? 'No Orders Yet' : 'No Orders Assigned'}
+              {isBroker ? t('journeys.noOrdersYet') : t('journeys.noOrdersAssigned')}
             </Text>
             <Text style={styles.emptySubtitle}>
               {isBroker 
-                ? 'Create your first order assignment for drivers'
-                : 'Wait for order assignments from your broker'
+                ? t('journeys.createFirstOrder')
+                : t('journeys.waitForAssignments')
               }
             </Text>
           </View>
@@ -79,7 +107,7 @@ export default function JourneysScreen() {
                     router.push(`/journeys/${journey.id}`);
                   } else {
                     // For drivers, go directly to live tracking if assigned
-                    if (journey.driverId === user?.id && journey.status !== 'completed') {
+                    if (journey.driverId === user?.id?.toString() && journey.status !== 'completed') {
                       router.push(`/journeys/live-tracking?journeyId=${journey.id}`);
                     } else {
                       router.push(`/(tabs)/journeys/${journey.id}`);
@@ -100,11 +128,11 @@ export default function JourneysScreen() {
                 <View style={styles.routeInfo}>
                   <View style={styles.locationItem}>
                     <MapPin size={16} color="#059669" />
-                    <Text style={styles.locationText}>From: {journey.fromLocation}</Text>
+                    <Text style={styles.locationText}>{t('dashboard.from')}: {journey.fromLocation}</Text>
                   </View>
                   <View style={styles.locationItem}>
                     <MapPin size={16} color="#dc2626" />
-                    <Text style={styles.locationText}>To: {journey.toLocation}</Text>
+                    <Text style={styles.locationText}>{t('dashboard.to')}: {journey.toLocation}</Text>
                   </View>
                 </View>
 
@@ -112,7 +140,7 @@ export default function JourneysScreen() {
                   <View style={styles.footerItem}>
                     <User size={16} color="#64748b" />
                     <Text style={styles.footerText}>
-                      {journey.driverName || 'Unassigned'}
+                      {journey.driverName || t('journeys.unassigned')}
                     </Text>
                   </View>
                   <View style={styles.footerItem}>
@@ -129,17 +157,17 @@ export default function JourneysScreen() {
                         // Copy to clipboard or share
                         if (navigator.share) {
                           navigator.share({
-                            title: 'Track Your Delivery',
-                            text: 'Track your delivery in real-time',
+                            title: t('journeys.trackYourDelivery'),
+                            text: t('journeys.trackDeliveryRealTime'),
                             url: clientUrl,
                           });
                         } else {
                           navigator.clipboard.writeText(clientUrl);
-                          Alert.alert('Link Copied', 'Client tracking link copied to clipboard');
+                          Alert.alert(t('journeys.linkCopied'), t('journeys.clientTrackingLinkCopied'));
                         }
                       }}
                     >
-                      <Text style={styles.clientLinkText}>Share Client Link</Text>
+                      <Text style={styles.clientLinkText}>{t('journeys.shareClientLink')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

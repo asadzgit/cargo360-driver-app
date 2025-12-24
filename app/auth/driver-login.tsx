@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function DriverLoginScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage(); // Force re-render when language changes
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,7 +18,7 @@ export default function DriverLoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('auth.error'), t('auth.pleaseTryAgain'));
       return;
     }
 
@@ -22,7 +27,7 @@ export default function DriverLoginScreen() {
       await loginDriver(email, password);
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Login Failed', error instanceof Error ? error.message : 'Invalid credentials. Please try again.');
+      Alert.alert(t('auth.driverLogin'), error instanceof Error ? error.message : t('auth.pleaseTryAgain'));
     } finally {
       setLoading(false);
     }
@@ -34,33 +39,36 @@ export default function DriverLoginScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <ArrowLeft size={24} color="#64748b" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#64748b" />
+        </TouchableOpacity>
+        <LanguageToggle />
+      </View>
 
       <View style={styles.form}>
-        <Text style={styles.title}>Driver Login</Text>
-        <Text style={styles.subtitle}>Enter your driver credentials to continue</Text>
+        <Text style={styles.title}>{t('auth.driverLogin')}</Text>
+        <Text style={styles.subtitle}>{t('auth.enterDriverCredentials')}</Text>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
+          <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
-            placeholder="Enter your email"
+            placeholder={t('auth.enterEmail')}
             autoCapitalize="none"
             keyboardType="email-address"
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('auth.password')}</Text>
           <TextInput
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            placeholder="Enter your password"
+            placeholder={t('auth.enterPassword')}
             secureTextEntry
           />
         </View>
@@ -71,16 +79,16 @@ export default function DriverLoginScreen() {
           disabled={loading}
         >
           <Text style={styles.loginButtonText}>
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? t('auth.signingIn') : t('auth.signIn')}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.helpContainer}>
           <Text style={styles.helpText}>
-            Don't have a driver account?
+            {t('auth.dontHaveDriverAccount')}
           </Text>
           <TouchableOpacity onPress={handleSignup} style={styles.signupButton}>
-            <Text style={styles.signupButtonText}>Sign up here</Text>
+            <Text style={styles.signupButtonText}>{t('auth.signUpHere')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -95,10 +103,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    padding: 8,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  backButton: {
+    padding: 8,
   },
   form: {
     flex: 1,

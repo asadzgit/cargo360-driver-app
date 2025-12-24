@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { LogOut, User, Building, Phone, MapPin, Mail, Contact, Pencil, Save, X, FileText, Car } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { apiService } from '@/services/api';
+import { LanguageToggle } from '@/components/LanguageToggle';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { user, logout, setUser } = useAuth();
   const router = useRouter();
   const scrollRef = useScrollToTopOnFocus();
@@ -83,7 +86,7 @@ export default function ProfileScreen() {
 
   const validateCnic = () => {
     if (formCnic && formCnic.length > 0 && formCnic.length !== 13) {
-      setCnicError('CNIC must be exactly 13 digits');
+      setCnicError(t('profile.cnicMustBe13Digits'));
       return false;
     }
     setCnicError('');
@@ -130,7 +133,7 @@ export default function ProfileScreen() {
     }
 
     if (Object.keys(payload).length === 0) {
-      setUpdateError('No changes to update.');
+      setUpdateError(t('profile.noChangesToUpdate'));
       return;
     }
 
@@ -142,12 +145,12 @@ export default function ProfileScreen() {
         await setUser(updatedUser);
       }
       setEditing(false);
-      setUpdateSuccess('Profile updated successfully.');
+      setUpdateSuccess(t('profile.profileUpdatedSuccessfully'));
       
       // Auto-hide success message after 3 seconds
       setTimeout(() => setUpdateSuccess(''), 3000);
     } catch (e: any) {
-      setUpdateError(e?.message || 'Failed to update profile.');
+      setUpdateError(e?.message || t('profile.failedToUpdateProfile'));
     } finally {
       setUpdateLoading(false);
     }
@@ -155,12 +158,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('profile.logout'),
+      t('profile.areYouSureLogout'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('profile.cancel'), style: 'cancel' },
         {
-          text: 'Logout',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -181,7 +184,7 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+        <Text style={styles.loadingText}>{t('profile.loadingProfile')}</Text>
       </View>
     );
   }
@@ -191,38 +194,41 @@ export default function ProfileScreen() {
   return (
     <ScrollView ref={scrollRef} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        {!editing ? (
-          <TouchableOpacity style={styles.editButton} onPress={handleToggleEdit}>
-            <Pencil size={18} color="#2563eb" />
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.editActions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={handleUpdateProfile}
-              disabled={updateLoading}
-            >
-              {updateLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Save size={18} color="#fff" />
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </>
-              )}
+        <Text style={styles.title}>{t('profile.profile')}</Text>
+        <View style={styles.headerRight}>
+          <LanguageToggle />
+          {!editing ? (
+            <TouchableOpacity style={styles.editButton} onPress={handleToggleEdit}>
+              <Pencil size={18} color="#2563eb" />
+              <Text style={styles.editButtonText}>{t('profile.edit')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleToggleEdit}
-              disabled={updateLoading}
-            >
-              <X size={18} color="#64748b" />
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          ) : (
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={handleUpdateProfile}
+                disabled={updateLoading}
+              >
+                {updateLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Save size={18} color="#fff" />
+                    <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={handleToggleEdit}
+                disabled={updateLoading}
+              >
+                <X size={18} color="#64748b" />
+                <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       {updateError ? (
@@ -247,14 +253,14 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.detailsCard}>
-        <Text style={styles.detailsTitle}>Account Details</Text>
+        <Text style={styles.detailsTitle}>{t('profile.accountDetails')}</Text>
 
         <View style={styles.detailItem}>
           <View style={styles.detailIcon}>
             <Phone size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Phone number</Text>
+            <Text style={styles.detailLabel}>{t('profile.phoneNumber')}</Text>
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.phone || '-'}</Text>
             ) : (
@@ -262,7 +268,7 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={formPhone}
                 onChangeText={setFormPhone}
-                placeholder="Phone number"
+                placeholder={t('profile.phoneNumber')}
                 keyboardType="phone-pad"
               />
             )}
@@ -274,7 +280,7 @@ export default function ProfileScreen() {
             <Building size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Company</Text>
+            <Text style={styles.detailLabel}>{t('profile.company')}</Text>
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.company || '-'}</Text>
             ) : (
@@ -282,7 +288,7 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={formCompany}
                 onChangeText={setFormCompany}
-                placeholder="Company name"
+                placeholder={t('profile.companyName')}
               />
             )}
           </View>
@@ -293,7 +299,7 @@ export default function ProfileScreen() {
             <FileText size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>CNIC</Text>
+            <Text style={styles.detailLabel}>{t('profile.cnic')}</Text>
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.cnic || '-'}</Text>
             ) : (
@@ -303,7 +309,7 @@ export default function ProfileScreen() {
                   value={formCnic}
                   onChangeText={handleCnicChange}
                   onBlur={validateCnic}
-                  placeholder="CNIC number (13 digits)"
+                  placeholder={t('profile.cnicNumber')}
                   keyboardType="number-pad"
                   maxLength={13}
                 />
@@ -318,7 +324,7 @@ export default function ProfileScreen() {
             <FileText size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>License</Text>
+            <Text style={styles.detailLabel}>{t('profile.license')}</Text>
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.license || '-'}</Text>
             ) : (
@@ -326,7 +332,7 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={formLicense}
                 onChangeText={setFormLicense}
-                placeholder="License number"
+                placeholder={t('profile.licenseNumber')}
               />
             )}
           </View>
@@ -337,7 +343,7 @@ export default function ProfileScreen() {
             <Car size={20} color="#64748b" />
           </View>
           <View style={styles.detailContent}>
-            <Text style={styles.detailLabel}>Vehicle Registration No</Text>
+            <Text style={styles.detailLabel}>{t('profile.vehicleRegistrationNo')}</Text>
             {!editing ? (
               <Text style={styles.detailValue}>{displayUser?.vehicleRegistration || '-'}</Text>
             ) : (
@@ -345,7 +351,7 @@ export default function ProfileScreen() {
                 style={styles.input}
                 value={formVehicleRegistration}
                 onChangeText={setFormVehicleRegistration}
-                placeholder="Vehicle registration number"
+                placeholder={t('profile.vehicleRegistrationNumber')}
               />
             )}
           </View>
@@ -354,7 +360,7 @@ export default function ProfileScreen() {
 
       {/* Support Section */}
       <View style={styles.supportSection}>
-        <Text style={styles.supportTitle}>Contact Support</Text>
+        <Text style={styles.supportTitle}>{t('profile.contactSupport')}</Text>
 
         <TouchableOpacity
           style={styles.supportRow}
@@ -377,18 +383,18 @@ export default function ProfileScreen() {
           onPress={() => Linking.openURL('https://cargo360pk.com/privacy-policy')}
         >
           <Contact size={20} color="#64748B" />
-          <Text style={styles.supportLinkText}>Privacy Policy</Text>
+          <Text style={styles.supportLinkText}>{t('profile.privacyPolicy')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Bottom footer */}
       <View style={styles.footerBottom}>
-        <Text style={styles.supportText}>© 2025 CARGO 360. All rights reserved.</Text>
+        <Text style={styles.supportText}>{t('profile.allRightsReserved')}</Text>
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <LogOut size={20} color="#dc2626" />
-        <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>{t('profile.logout')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -416,6 +422,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexShrink: 0,
   },
   title: {
     fontSize: 28,

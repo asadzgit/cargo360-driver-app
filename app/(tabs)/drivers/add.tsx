@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { useDrivers } from '@/hooks/useDrivers';
 import { ArrowLeft } from 'lucide-react-native';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 
 export default function AddDriverScreen() {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -23,28 +27,28 @@ export default function AddDriverScreen() {
 
   const handleAddDriver = async () => {
     if (!name || !phone) {
-      Alert.alert('Error', 'Please provide driver name and phone number');
+      Alert.alert(t('dashboard.error'), t('dashboard.pleaseProvideDriverNameAndPhone'));
       return;
     }
 
     // Validate phone number
     const validation = validatePakistaniPhone(phone);
     if (!validation.isValid) {
-      setPhoneError(validation.error || 'Invalid phone number');
-      Alert.alert('Invalid Phone Number', validation.error || 'Please enter a valid Pakistani phone number');
+      setPhoneError(validation.error || t('auth.invalidPhoneNumber'));
+      Alert.alert(t('auth.invalidPhoneNumber'), validation.error || t('auth.enterValidPakistaniPhone'));
       return;
     }
 
     setLoading(true);
     try {
       const res = await addDriver({ name, phone });
-      const message = (res as any)?.message || 'Driver added and OTP sent.';
-      Alert.alert('Success', message, [
+      const message = (res as any)?.message || t('dashboard.driverAddedAndOTPSent');
+      Alert.alert(t('dashboard.success'), message, [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      const msg = error?.message || 'Failed to add driver. Please try again.';
-      Alert.alert('Error', error);
+      const msg = error?.message || t('dashboard.failedToAddDriver');
+      Alert.alert(t('dashboard.error'), msg);
     } finally {
       setLoading(false);
     }
@@ -56,27 +60,27 @@ export default function AddDriverScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Add New Driver</Text>
+        <Text style={styles.title}>{t('dashboard.addNewDriver')}</Text>
       </View>
 
       <View style={styles.form}>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>{t('auth.fullName')}</Text>
           <TextInput
             style={styles.input}
             value={name}
             onChangeText={setName}
-            placeholder="Enter driver's full name"
+            placeholder={t('dashboard.enterDriversFullName')}
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone Number</Text>
+          <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
           <TextInput
             style={[styles.input, phoneError && styles.inputError]}
             value={phone}
             onChangeText={handlePhoneChange}
-            placeholder="e.g. 03001234567, 923001234567, or +923001234567"
+            placeholder={t('auth.phonePlaceholderExtended')}
             keyboardType="phone-pad"
             autoCapitalize="none"
           />
@@ -89,7 +93,7 @@ export default function AddDriverScreen() {
           disabled={loading}
         >
           <Text style={styles.addButtonText}>
-            {loading ? 'Adding Driver...' : 'Add Driver'}
+            {loading ? t('dashboard.addingDriver') : t('dashboard.addDriver')}
           </Text>
         </TouchableOpacity>
       </View>
