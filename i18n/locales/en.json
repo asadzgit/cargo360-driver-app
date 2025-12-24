@@ -135,7 +135,17 @@
     "remove": "Remove",
     "failedToRemoveDriver": "Failed to remove driver. Please try again.",
     "accessDenied": "Access denied. Broker access required.",
-    "locationNotAvailable": "Location not available"
+    "locationNotAvailable": "Location not available",
+    "driverProfile": "Driver Profile",
+    "driver": "Driver",
+    "driverNotFound": "Driver not found",
+    "live": "Live",
+    "call": "Call",
+    "liveLocation": "Live Location",
+    "inProgress": "In Progress",
+    "noInProgressJourneys": "No in-progress journeys",
+    "past": "Past",
+    "noPastJourneys": "No past journeys"
   },
   "journeys": {
     "journeyAssignments": "Journey Assignments",

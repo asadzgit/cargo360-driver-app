@@ -135,7 +135,17 @@
     "remove": "ہٹائیں",
     "failedToRemoveDriver": "ڈرائیور ہٹانے میں ناکام۔ براہ کرم دوبارہ کوشش کریں۔",
     "accessDenied": "رسائی مسترد۔ بروکر کی رسائی درکار ہے۔",
-    "locationNotAvailable": "مقام دستیاب نہیں"
+    "locationNotAvailable": "مقام دستیاب نہیں",
+    "driverProfile": "ڈرائیور پروفائل",
+    "driver": "ڈرائیور",
+    "driverNotFound": "ڈرائیور نہیں ملا",
+    "live": "لائیو",
+    "call": "کال",
+    "liveLocation": "لائیو مقام",
+    "inProgress": "جاری",
+    "noInProgressJourneys": "کوئی جاری سفر نہیں",
+    "past": "ماضی",
+    "noPastJourneys": "کوئی ماضی کے سفر نہیں"
   },
   "journeys": {
     "journeyAssignments": "سفر کی تفویضات",
