@@ -30,11 +30,9 @@ export default function JourneysScreen() {
   }, [reloadJourneys]);
 
   const isBroker = user?.role === 'trucker';
-  const userJourneys = journeys 
-  
-  // const userJourneys = isBroker 
-  //   ? journeys 
-  //   : journeys.filter(j => j.driverId === user?.id);
+  const userJourneys = isBroker 
+    ? journeys 
+    : journeys.filter(j => j.driverId === user?.id?.toString());
 
   const getStatusColor = (status: string) => {
     switch (status) {
