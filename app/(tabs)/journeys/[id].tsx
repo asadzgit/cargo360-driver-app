@@ -107,6 +107,7 @@ export default function JourneyDetailScreen() {
   const mapApiStatusToJourneyStatus = (apiStatus: string) => {
     const statusMap: Record<string, string> = {
       'pending': 'pending',
+      'confirmed': 'assigned', // Customer confirmed shipment, treat as assigned if driver is assigned
       'accepted': 'assigned',
       'picked_up': 'in_progress',
       'in_transit': 'in_progress',
@@ -353,7 +354,10 @@ export default function JourneyDetailScreen() {
   }
 
   const isBroker = user?.role === 'trucker' || user?.role === 'customer';
-  const isAssignedDriver = user?.role === 'driver' && journey.driverId === user.id.toString();
+  // Handle type mismatch: compare both as strings to ensure match
+  const isAssignedDriver = user?.role === 'driver' && 
+    journey.driverId && 
+    String(journey.driverId) === String(user.id);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>

@@ -29,6 +29,7 @@ const mapShipmentToJourney = (shipment: Shipment): Journey => {
   // Map API status to Journey status
   const statusMap: Record<string, Journey['status']> = {
     'pending': 'pending',
+    'confirmed': 'assigned', // Customer confirmed shipment, treat as assigned if driver is assigned
     'accepted': 'assigned',
     'picked_up': 'in_progress',
     'in_transit': 'in_progress',
