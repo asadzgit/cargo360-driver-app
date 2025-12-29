@@ -5,7 +5,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useRouter } from 'expo-router';
-import { Plus, Truck, MapPin, Clock, User } from 'lucide-react-native';
+import { Plus, Truck, MapPin, Clock, User, RefreshCcw } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function JourneysScreen() {
@@ -68,6 +68,19 @@ export default function JourneysScreen() {
             <Text style={styles.addButtonText}>Assign</Text>
           </TouchableOpacity>
         )} */}
+      </View>
+
+      <View style={styles.headerButtons}>
+        <TouchableOpacity 
+          style={styles.refreshButton} 
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCcw size={16} color="#ffffff" />
+          <Text style={styles.refreshButtonText}>
+            {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -197,6 +210,26 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  refreshButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   addButton: {
     flexDirection: 'row',

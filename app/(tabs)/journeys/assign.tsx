@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useFocusEffect } from '@react-navigation/native';
-import { ArrowLeft, User, MapPin, Truck, Check } from 'lucide-react-native';
+import { ArrowLeft, User, MapPin, Truck, Check, RefreshCcw } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function AssignDriverScreen() {
   const { journeyId: qpJourneyId } = useLocalSearchParams<{ journeyId?: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { journeys, assignDriverToJourney } = useJourneys();
+  const { journeys, assignDriverToJourney, reload: reloadJourneys } = useJourneys();
   const { drivers, reload: reloadDrivers, getAvailableDrivers } = useDrivers();
   const scrollRef = useScrollToTopOnFocus();
 
   const isBroker = user?.role === 'trucker';
   const [selectedJourneyId, setSelectedJourneyId] = useState<string | undefined>(qpJourneyId);
   const [assigning, setAssigning] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isBroker) {
@@ -47,6 +48,20 @@ export default function AssignDriverScreen() {
   // Only show drivers who have signed up and verified their account
   const selectableDrivers = useMemo(() => getAvailableDrivers(), [drivers]);
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        reloadDrivers(true),
+        reloadJourneys(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadDrivers, reloadJourneys]);
+
   const handleAssign = async (driverId: string) => {
     if (!selectedJourneyId) {
       Alert.alert('Select journey', 'Please select a journey first');
@@ -66,12 +81,38 @@ export default function AssignDriverScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView 
+      ref={scrollRef} 
+      style={styles.container} 
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={['#ed8411']}
+          tintColor="#ed8411"
+        />
+      }
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Assign Driver</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <RefreshCcw size={16} color="#FFFFFF" />
+              <Text style={styles.refreshText}>Refresh</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Step 1: choose journey if not provided */}
@@ -130,14 +171,34 @@ export default function AssignDriverScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   content: { paddingBottom: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24, 
-        backgroundColor:'#024d9a',
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingHorizontal: 24, 
+    paddingTop: 60, 
+    paddingBottom: 24, 
+    backgroundColor:'#024d9a',
     borderBottomLeftRadius: 60,
     borderBottomRightRadius: 60,
     marginBottom: 10,
   },
   backButton: { padding: 8, marginRight: 16, color: '#fff' },
-  title: { fontSize: 24, fontWeight: '700', color: '#fff' },
+  title: { fontSize: 24, fontWeight: '700', color: '#fff', flex: 1 },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 6,
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   card: { backgroundColor: '#fff', marginHorizontal: 24, marginBottom: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1e293b', marginBottom: 12 },
   muted: { color: '#64748b' },
