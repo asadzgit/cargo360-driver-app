@@ -8,12 +8,44 @@ import { MapPin, Play, Square, Navigation } from 'lucide-react-native';
 export default function TrackingScreen() {
   const { user } = useAuth();
   const { 
-    location, 
-    isTracking, 
-    startTracking, 
-    stopTracking, 
-    sendLocationUpdate 
-  } = useLocationTracking();
+    currentLocation,
+    isLocationEnabled,
+    requestLocationPermission,
+    sendLocationNow
+  } = useLocationTracking({
+    shipmentId: null, // No specific shipment for this screen
+    isTracking: false,
+  });
+  
+  // Map hook return values to expected variable names for compatibility
+  const location = currentLocation ? {
+    coords: {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+      accuracy: currentLocation.accuracy,
+      speed: currentLocation.speed,
+      heading: currentLocation.heading,
+    },
+    timestamp: new Date(currentLocation.timestamp).getTime(),
+  } : null;
+  const isTracking = isLocationEnabled;
+  
+  // Local implementations for startTracking, stopTracking, and sendLocationUpdate
+  const [isManuallyTracking, setIsManuallyTracking] = useState(false);
+  
+  const startTracking = async () => {
+    await requestLocationPermission();
+    setIsManuallyTracking(true);
+    await sendLocationNow();
+  };
+  
+  const stopTracking = async () => {
+    setIsManuallyTracking(false);
+  };
+  
+  const sendLocationUpdate = async () => {
+    await sendLocationNow();
+  };
   // const { sendNotification } = useNotifications();
   const [currentJourney, setCurrentJourney] = useState(null);
 

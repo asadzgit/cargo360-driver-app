@@ -116,16 +116,17 @@ export default function JourneysScreen() {
                 key={journey.id}
                 style={styles.journeyCard}
                 onPress={() => {
-                  if (isBroker) {
-                    router.push(`/journeys/${journey.id}`);
-                  } else {
-                    // For drivers, go directly to live tracking if assigned
-                    if (journey.driverId === user?.id?.toString() && journey.status !== 'completed') {
-                      router.push(`/journeys/live-tracking?journeyId=${journey.id}`);
-                    } else {
-                      router.push(`/(tabs)/journeys/${journey.id}`);
-                    }
-                  }
+                  // Always use the same route format for consistency
+                  // Use (tabs) prefix to ensure we're in the tabs navigation stack
+                  console.log('Navigating to journey from My Journey page:', {
+                    journeyId: journey.id,
+                    journeyIdType: typeof journey.id,
+                    fromLocation: journey.fromLocation,
+                    toLocation: journey.toLocation,
+                    status: journey.status,
+                    driverId: journey.driverId,
+                  });
+                  router.push(`/(tabs)/journeys/${journey.id}`);
                 }}
               >
                 <View style={styles.journeyHeader}>

@@ -239,7 +239,17 @@ export default function DashboardScreen() {
             <TouchableOpacity 
               key={index} 
               style={styles.activityItem}
-              onPress={() => router.push(`/(tabs)/journeys/${journey.id}`)}
+              onPress={() => {
+                console.log('Navigating to journey from Dashboard:', {
+                  journeyId: journey.id,
+                  journeyIdType: typeof journey.id,
+                  fromLocation: journey.fromLocation,
+                  toLocation: journey.toLocation,
+                  status: journey.status,
+                  driverId: journey.driverId,
+                });
+                router.push(`/(tabs)/journeys/${journey.id}`);
+              }}
             >
               <View style={styles.activityIcon}>
                 <Truck size={16} color={isBroker ? '#2563eb' : '#059669'} />
