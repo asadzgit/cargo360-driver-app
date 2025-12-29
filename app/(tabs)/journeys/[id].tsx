@@ -527,7 +527,7 @@ export default function JourneyDetailScreen() {
         </View>
       )}
 
-      {isBroker && (
+      {/* {isBroker && (
         <View style={styles.adminActions}>
           <Text style={styles.sectionTitle}>{t('journeyDetails.adminActions')}</Text>
           <TouchableOpacity 
@@ -558,7 +558,7 @@ export default function JourneyDetailScreen() {
             <Text style={styles.shareButtonText}>{t('journeyDetails.shareClientTrackingLink')}</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
     </ScrollView>
   );
 }

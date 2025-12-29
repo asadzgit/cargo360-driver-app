@@ -147,7 +147,7 @@ export default function JourneysScreen() {
                       {new Date(journey.createdAt).toLocaleDateString()}
                     </Text>
                   </View>
-                  {isBroker && journey.status === 'in_progress' && (
+                  {/* {isBroker && journey.status === 'in_progress' && (
                     <TouchableOpacity 
                       style={styles.clientLinkButton}
                       onPress={() => {
@@ -167,7 +167,7 @@ export default function JourneysScreen() {
                     >
                       <Text style={styles.clientLinkText}>{t('journeys.shareClientLink')}</Text>
                     </TouchableOpacity>
-                  )}
+                  )} */}
                 </View>
               </TouchableOpacity>
             ))}

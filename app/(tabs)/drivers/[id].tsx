@@ -87,7 +87,7 @@ export default function DriverDetailScreen() {
             <Text style={styles.name}>{translateDriverName(driver.name)}</Text>
             <Text style={styles.muted}>ID: {driver.id}</Text>
           </View>
-          <View style={getStatusChipStyle(driver.status)}>
+          {/* <View style={getStatusChipStyle(driver.status)}>
             <Text style={styles.statusText}>
               {driver.status === 'active' 
                 ? t('drivers.live') 
@@ -95,7 +95,7 @@ export default function DriverDetailScreen() {
                 ? t('drivers.onJourney') 
                 : t('drivers.offline')}
             </Text>
-          </View>
+          </View> */}
         </View>
         <View style={styles.infoRow}>
           <Phone size={16} color="#64748b" />
@@ -110,10 +110,10 @@ export default function DriverDetailScreen() {
             <Phone size={18} color="#fff" />
             <Text style={styles.primaryBtnText}>{t('drivers.call')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={handleLive}>
+          {/* <TouchableOpacity style={styles.secondaryBtn} onPress={handleLive}>
             <Map size={18} color="#2563eb" />
             <Text style={styles.secondaryBtnText}>{t('drivers.liveLocation')}</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 

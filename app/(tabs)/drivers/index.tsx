@@ -54,23 +54,23 @@ export default function DriversScreen() {
     router.push('/drivers/add');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return '#059669';
-      case 'inactive': return '#64748b';
-      case 'on_journey': return '#ea580c';
-      default: return '#64748b';
-    }
-  };
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'active': return '#059669';
+  //     case 'inactive': return '#64748b';
+  //     case 'on_journey': return '#ea580c';
+  //     default: return '#64748b';
+  //   }
+  // };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return t('drivers.available');
-      case 'inactive': return t('drivers.offline');
-      case 'on_journey': return t('drivers.onJourney');
-      default: return t('drivers.unknown');
-    }
-  };
+  // const getStatusText = (status: string) => {
+  //   switch (status) {
+  //     case 'active': return t('drivers.available');
+  //     case 'inactive': return t('drivers.offline');
+  //     case 'on_journey': return t('drivers.onJourney');
+  //     default: return t('drivers.unknown');
+  //   }
+  // };
 
   // Transliterate driver name to Urdu if language is Urdu
   const translateDriverName = (name: string) => {
@@ -175,9 +175,9 @@ export default function DriversScreen() {
                     <Text style={styles.driverName}>{translateDriverName(driver.name)}</Text>
                     <Text style={styles.driverId}>ID: {driver.driverId}</Text>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(driver.status) }]}>
+                  {/* <View style={[styles.statusBadge, { backgroundColor: getStatusColor(driver.status) }]}>
                     <Text style={styles.statusText}>{getStatusText(driver.status)}</Text>
-                  </View>
+                  </View> */}
                 </View>
 
                 <View style={styles.driverDetails}>
