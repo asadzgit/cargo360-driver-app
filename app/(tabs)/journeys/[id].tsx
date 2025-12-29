@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, RefreshControl, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map, RefreshCcw } from 'lucide-react-native';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { apiService } from '@/services/api';
@@ -20,7 +20,8 @@ export default function JourneyDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [startingJourney, setStartingJourney] = useState(false);
   const [completingJourney, setCompletingJourney] = useState(false);
-  const { journeys } = useJourneys();
+  const [refreshing, setRefreshing] = useState(false);
+  const { journeys, reload: reloadJourneys } = useJourneys();
 
   // Location tracking - only track when:
   // 1. User is the assigned driver
@@ -46,26 +47,29 @@ export default function JourneyDetailScreen() {
     loadJourneyDetails();
   }, [id, journeys]);
 
-  const loadJourneyDetails = async () => {
+  const loadJourneyDetails = async (forceRefresh = false) => {
     if (!id) return;
 
     setLoading(true);
     try {
-      // First try to find the journey in the cached journeys
-      const cachedJourney = journeys.find(j => j.id === id);
-      if (cachedJourney) {
-        // Normalize cached journey to ensure notes field exists
-        const normalizedJourney = {
-          ...cachedJourney,
-          notes: cachedJourney.notes || (cachedJourney as any).description,
-        };
-        setJourney(normalizedJourney);
-        setLoading(false);
-        return;
+      // If force refresh, skip cache and always fetch from API
+      if (!forceRefresh) {
+        // First try to find the journey in the cached journeys
+        const cachedJourney = journeys.find(j => j.id === id);
+        if (cachedJourney) {
+          // Normalize cached journey to ensure notes field exists
+          const normalizedJourney = {
+            ...cachedJourney,
+            notes: cachedJourney.notes || (cachedJourney as any).description,
+          };
+          setJourney(normalizedJourney);
+          setLoading(false);
+          return;
+        }
       }
 
       console.log('Loading journey details for ID:', id);
-      // If not found in cache, fetch from API
+      // Always fetch from API when force refresh or not in cache
       const response = await apiService.getShipment(parseInt(id as string));
       console.log('Response:', response.data);
       const shipment = response.data.shipment;
@@ -103,6 +107,20 @@ export default function JourneyDetailScreen() {
       setLoading(false);
     }
   };
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      // Reload journeys list first
+      await reloadJourneys();
+      // Then reload the specific journey details with force refresh
+      await loadJourneyDetails(true);
+    } catch (error) {
+      console.error('Error refreshing journey details:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [id, reloadJourneys]);
 
   const mapApiStatusToJourneyStatus = (apiStatus: string) => {
     const statusMap: Record<string, string> = {
@@ -360,12 +378,37 @@ export default function JourneyDetailScreen() {
     String(journey.driverId) === String(user.id);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={['#ed8411']}
+          tintColor="#ed8411"
+        />
+      }
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <RefreshCcw size={16} color="#FFFFFF" />
+              <Text style={styles.refreshText}>{t('dashboard.refresh')}</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.journeyCard}>
@@ -589,6 +632,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 24,
@@ -601,6 +645,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#1e293b',
+    flex: 1,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 6,
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   loadingText: {
     fontSize: 16,

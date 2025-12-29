@@ -78,6 +78,8 @@ export default function JourneysScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            colors={['#ed8411']}
+            tintColor="#ed8411"
           />
         }
       >

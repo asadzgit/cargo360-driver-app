@@ -142,8 +142,8 @@ export default function DashboardScreen() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={['#2563eb']}
-          tintColor="#2563eb"
+          colors={['#ed8411']}
+          tintColor="#ed8411"
         />
       }
     >
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#ed8411',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
