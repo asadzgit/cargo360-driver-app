@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Plus, User, Phone, MapPin, Map, Trash2 } from 'lucide-react-native';
+import { Plus, User, Phone, MapPin, Map, Trash2, RefreshCcw } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriversScreen() {
@@ -138,6 +138,16 @@ export default function DriversScreen() {
             <Text style={styles.addButtonText}>{t('drivers.addDriver')}</Text>
           </TouchableOpacity>
         }
+        <TouchableOpacity 
+          style={styles.refreshButton} 
+          onPress={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCcw size={16} color="#ffffff" />
+          <Text style={styles.refreshButtonText}>
+            {refreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
@@ -148,6 +158,8 @@ export default function DriversScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
+            colors={['#ed8411']}
+            tintColor="#ed8411"
           />
         }
       >
@@ -260,6 +272,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   addButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+  },
+  refreshButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',

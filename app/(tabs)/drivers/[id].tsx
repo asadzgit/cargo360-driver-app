@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/context/LanguageContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useDrivers } from '@/hooks/useDrivers';
 import { useJourneys } from '@/hooks/useJourneys';
-import { ArrowLeft, Phone, MapPin, User, Clock, Map } from 'lucide-react-native';
+import { ArrowLeft, Phone, MapPin, User, Clock, Map, RefreshCcw } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 
 export default function DriverDetailScreen() {
@@ -13,9 +13,10 @@ export default function DriverDetailScreen() {
   const { language } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { getDriverById } = useDrivers();
-  const { journeys } = useJourneys();
+  const { getDriverById, reload: reloadDrivers } = useDrivers();
+  const { journeys, reload: reloadJourneys } = useJourneys();
   const scrollRef = useScrollToTopOnFocus();
+  const [refreshing, setRefreshing] = useState(false);
 
   const driver = getDriverById(id as string);
 
@@ -35,6 +36,20 @@ export default function DriverDetailScreen() {
   const handleLive = () => {
     router.push(`/(tabs)/journeys/live-tracking?driverId=${id}`);
   };
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      await Promise.all([
+        reloadDrivers(true),
+        reloadJourneys(),
+      ]);
+    } catch (error) {
+      console.error('Error refreshing driver details:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [reloadDrivers, reloadJourneys]);
 
   // Transliterate driver name to Urdu if language is Urdu
   const translateDriverName = (name: string) => {
@@ -73,12 +88,38 @@ export default function DriverDetailScreen() {
   }
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView 
+      ref={scrollRef} 
+      style={styles.container} 
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={['#ed8411']}
+          tintColor="#ed8411"
+        />
+      }
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.title}>{t('drivers.driverProfile')}</Text>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <RefreshCcw size={16} color="#FFFFFF" />
+              <Text style={styles.refreshText}>{t('dashboard.refresh')}</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
@@ -184,9 +225,23 @@ const getStatusSmallStyle = (status: string) => ({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { paddingBottom: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 },
   backButton: { padding: 8, marginRight: 16 },
-  title: { fontSize: 24, fontWeight: '700', color: '#1e293b' },
+  title: { fontSize: 24, fontWeight: '700', color: '#1e293b', flex: 1 },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed8411',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    gap: 6,
+  },
+  refreshText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   empty: { textAlign: 'center', marginTop: 100, color: '#64748b' },
   card: { backgroundColor: '#fff', marginHorizontal: 24, marginBottom: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
