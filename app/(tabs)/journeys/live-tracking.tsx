@@ -39,11 +39,40 @@ export default function LiveTrackingScreen() {
   const { journeyId } = useLocalSearchParams();
   const router = useRouter();
   const { 
-    location, 
-    isTracking, 
-    startTracking, 
-    stopTracking 
-  } = useLocationTracking();
+    currentLocation,
+    isLocationEnabled,
+    requestLocationPermission,
+    sendLocationNow
+  } = useLocationTracking({
+    shipmentId: journeyId ? parseInt(journeyId as string) : null,
+    isTracking: false, // Will be controlled manually if needed
+  });
+  
+  // Map hook return values to expected variable names for compatibility
+  const location = currentLocation ? {
+    coords: {
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+      accuracy: currentLocation.accuracy,
+      speed: currentLocation.speed,
+      heading: currentLocation.heading,
+    },
+    timestamp: new Date(currentLocation.timestamp).getTime(),
+  } : null;
+  const isTracking = isLocationEnabled;
+  
+  // Local implementations for startTracking and stopTracking
+  const startTracking = async () => {
+    await requestLocationPermission();
+    // The hook will handle tracking when isTracking is true
+    // For now, we'll just request permission and send location manually
+    await sendLocationNow();
+  };
+  
+  const stopTracking = async () => {
+    // The hook will stop tracking when isTracking is false
+    // This is handled by the hook's useEffect
+  };
   // const { sendNotification } = useNotifications();
   
   const [mapComponents, setMapComponents] = useState<any>(null);
@@ -52,8 +81,8 @@ export default function LiveTrackingScreen() {
   const [startLocation, setStartLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [milestones, setMilestones] = useState<string[]>([]);
   const [routeCoordinates, setRouteCoordinates] = useState<{ latitude: number; longitude: number }[]>([]);
-  const mapRef = useRef<MapView>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mapRef = useRef<any>(null); // MapView type is loaded dynamically
+  const intervalRef = useRef<number | null>(null); // setInterval returns number in React Native
 
   useEffect(() => {
     if (Platform.OS !== 'web') {

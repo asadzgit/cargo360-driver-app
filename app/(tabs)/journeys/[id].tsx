@@ -1,20 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Target, User, Clock, Truck, Navigation, Map, RefreshCcw } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
 import { useJourneys } from '@/hooks/useJourneys';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 import { apiService } from '@/services/api';
 import { startBackgroundLocationTracking, stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
+import { JourneyDetails } from '@/components/JourneyDetails';
 
 export default function JourneyDetailScreen() {
   const { t } = useTranslation();
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  // Normalize id - handle both string and array cases from expo-router
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const [journey, setJourney] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,31 +51,101 @@ export default function JourneyDetailScreen() {
   }, [id, journeys]);
 
   const loadJourneyDetails = async (forceRefresh = false) => {
-    if (!id) return;
+    if (!id) {
+      console.warn('No journey ID provided');
+      return;
+    }
+
+    // Normalize ID to string for consistent comparison
+    const normalizedId = String(id).trim();
+    console.log('Loading journey details:', {
+      id: normalizedId,
+      idType: typeof id,
+      journeysCount: journeys.length,
+      forceRefresh,
+      journeyIds: journeys.map(j => ({ id: j.id, type: typeof j.id })),
+    });
 
     setLoading(true);
     try {
-      // If force refresh, skip cache and always fetch from API
-      if (!forceRefresh) {
-        // First try to find the journey in the cached journeys
-        const cachedJourney = journeys.find(j => j.id === id);
-        if (cachedJourney) {
-          // Normalize cached journey to ensure notes field exists
-          const normalizedJourney = {
-            ...cachedJourney,
-            notes: cachedJourney.notes || (cachedJourney as any).description,
-          };
-          setJourney(normalizedJourney);
-          setLoading(false);
-          return;
-        }
-      }
+      // Always fetch from API to ensure data consistency
+      // The cache might have stale or incorrect data, especially when navigating from different pages
+      // This ensures we always get the correct journey details regardless of where the user clicks
+      console.log('Fetching from API to ensure data consistency. Cache has', journeys.length, 'journeys');
 
-      console.log('Loading journey details for ID:', id);
+      console.log('Fetching journey from API for ID:', normalizedId);
       // Always fetch from API when force refresh or not in cache
-      const response = await apiService.getShipment(parseInt(id as string));
-      console.log('Response:', response.data);
-      const shipment = response.data.shipment;
+      const shipmentId = parseInt(normalizedId);
+      if (isNaN(shipmentId)) {
+        console.error('Invalid journey ID:', normalizedId);
+        Alert.alert('Error', 'Invalid journey ID');
+        return;
+      }
+      const response = await apiService.getShipment(shipmentId);
+      console.log('Full API Response:', JSON.stringify(response, null, 2));
+      
+      // Check if response exists
+      if (!response) {
+        console.error('No response received from API');
+        Alert.alert('Error', 'Failed to load journey details: No response from server');
+        return;
+      }
+      
+      // Handle different possible response structures
+      let shipment;
+      if (response.data?.shipment) {
+        // Expected structure: { success: true, data: { shipment: {...} } }
+        shipment = response.data.shipment;
+      } else if (response.data && typeof response.data === 'object' && 'id' in response.data) {
+        // Fallback: shipment might be directly in data
+        console.warn('Shipment found directly in response.data, not in response.data.shipment');
+        shipment = response.data as any;
+      } else if ((response as any).shipment) {
+        // Fallback: shipment might be directly in response (handle unexpected API response)
+        console.warn('Shipment found directly in response, not in response.data.shipment');
+        shipment = (response as any).shipment;
+      } else {
+        console.error('Shipment not found in response. Response structure:', {
+          hasData: !!response.data,
+          dataKeys: response.data ? Object.keys(response.data) : [],
+          responseKeys: Object.keys(response),
+          fullResponse: response,
+        });
+        Alert.alert(
+          'Error',
+          'Failed to load journey details: Shipment data not found in response'
+        );
+        return;
+      }
+      
+      if (!shipment) {
+        console.error('Shipment is undefined after all checks. Response:', response);
+        Alert.alert('Error', 'Failed to load journey details: Shipment not found');
+        return;
+      }
+      
+      // Verify the shipment ID matches what we requested
+      const shipmentIdStr = String(shipment.id).trim();
+      if (shipmentIdStr !== normalizedId) {
+        console.error('API returned wrong shipment!', {
+          requestedId: normalizedId,
+          receivedId: shipmentIdStr,
+          shipment: shipment,
+        });
+        Alert.alert(
+          'Error',
+          `Mismatch: Requested journey ${normalizedId} but received ${shipmentIdStr}. Please try again.`
+        );
+        return;
+      }
+      
+      console.log('Shipment data loaded successfully and verified:', {
+        requestedId: normalizedId,
+        shipmentId: shipment.id,
+        fromLocation: shipment.pickupLocation,
+        toLocation: shipment.dropLocation,
+        status: shipment.status,
+      });
       
       // Map shipment to journey format
       const mappedJourney = {
@@ -102,7 +175,16 @@ export default function JourneyDetailScreen() {
       setJourney(mappedJourney);
     } catch (error) {
       console.error('Error loading journey details:', error);
-      // Alert.alert('Error', 'Failed to load journey details');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load journey details';
+      console.error('Error details:', {
+        message: errorMessage,
+        error,
+        id,
+      });
+      Alert.alert(
+        t('dashboard.error'),
+        errorMessage || t('journeyDetails.failedToLoadJourneyDetails')
+      );
     } finally {
       setLoading(false);
     }
@@ -135,16 +217,6 @@ export default function JourneyDetailScreen() {
     return statusMap[apiStatus] || 'pending';
   };
 
-  const humanizeStatus = (status: string) => {
-    const statusMap: Record<string, string> = {
-      'pending': 'Pending Assignment',
-      'assigned': 'Assigned to Driver',
-      'in_progress': 'In Transit',
-      'completed': 'Delivered',
-      'cancelled': 'Cancelled',
-    };
-    return statusMap[status] || status;
-  };
 
   // Transliterate names to Urdu if language is Urdu
   const translateName = (name: string | null | undefined) => {
@@ -347,7 +419,7 @@ export default function JourneyDetailScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/journeys')}>
             <ArrowLeft size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
@@ -361,7 +433,7 @@ export default function JourneyDetailScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/journeys')}>
             <ArrowLeft size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
@@ -371,263 +443,38 @@ export default function JourneyDetailScreen() {
     );
   }
 
-  const isBroker = user?.role === 'trucker' || user?.role === 'customer';
   // Handle type mismatch: compare both as strings to ensure match
   const isAssignedDriver = user?.role === 'driver' && 
     journey.driverId && 
     String(journey.driverId) === String(user.id);
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          colors={['#ed8411']}
-          tintColor="#ed8411"
-        />
-      }
-    >
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color="#64748b" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('journeyDetails.journeyDetails')}</Text>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={handleRefresh}
-          disabled={refreshing}
-        >
-          {refreshing ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <RefreshCcw size={16} color="#FFFFFF" />
-              <Text style={styles.refreshText}>{t('dashboard.refresh')}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.journeyCard}>
-        <View style={styles.journeyHeader}>
-          <Text style={styles.journeyId}>C360-PK-{journey.id}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>
-            <Text style={styles.statusText}>{humanizeStatus(journey.status)}</Text>
-          </View>
-        </View>
-
-        <View style={styles.clientInfo}>
-          <Text style={styles.clientName}>{translateName(journey.clientName)}</Text>
-          <Text style={styles.loadInfo}>{journey.loadType} • {journey.vehicleType}</Text>
-          {journey.budget && (
-            <Text style={styles.budgetInfo}>{t('journeyDetails.budget')}: ${journey.budget}</Text>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.routeCard}>
-        <Text style={styles.sectionTitle}>{t('journeyDetails.routeInformation')}</Text>
-        
-        <View style={styles.routeDetails}>
-          <View style={styles.locationItem}>
-            <MapPin size={20} color="#059669" />
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>{t('journeyDetails.pickupLocation')}</Text>
-              <Text style={styles.locationValue}>{journey.fromLocation}</Text>
-            </View>
-          </View>
-
-          <View style={styles.routeLine} />
-
-          <View style={styles.locationItem}>
-            <Target size={20} color="#dc2626" />
-            <View style={styles.locationInfo}>
-              <Text style={styles.locationLabel}>{t('journeyDetails.deliveryLocation')}</Text>
-              <Text style={styles.locationValue}>{journey.toLocation}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.routeStats}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{journey.distance}</Text>
-            <Text style={styles.statLabel}>{t('journeyDetails.distance')}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{journey.estimatedDuration}</Text>
-            <Text style={styles.statLabel}>{t('journeyDetails.estDuration')}</Text>
-          </View>
-          {journey.cargoWeight && (
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{journey.cargoWeight}kg</Text>
-              <Text style={styles.statLabel}>{t('journeyDetails.weight')}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.assignmentCard}>
-        <Text style={styles.sectionTitle}>{t('journeyDetails.assignmentDetails')}</Text>
-        
-        <View style={styles.assignmentInfo}>
-          <View style={styles.infoRow}>
-            <User size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>{t('journeyDetails.driver')}</Text>
-            <Text style={styles.infoValue}>{translateName(journey.driverName)}</Text>
-          </View>
-          
-          {journey.assignedAt && (
-            <View style={styles.infoRow}>
-              <Clock size={16} color="#64748b" />
-              <Text style={styles.infoLabel}>{t('journeyDetails.assigned')}</Text>
-              <Text style={styles.infoValue}>
-                {new Date(journey.assignedAt).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.infoRow}>
-            <Truck size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>{t('journeyDetails.vehicle')}</Text>
-            <Text style={styles.infoValue}>{journey.vehicleType}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Clock size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>{t('journeyDetails.created')}</Text>
-            <Text style={styles.infoValue}>
-              {new Date(journey.createdAt).toLocaleDateString()}
-            </Text>
-          </View>
-        </View>
-
-        {(journey.notes || (journey as any).description) && (
-          <View style={styles.notesContainer}>
-            <Text style={styles.notesTitle}>{t('journeyDetails.description')}</Text>
-            <Text style={styles.notesText}>{translateName(journey.notes || (journey as any).description)}</Text>
-          </View>
-        )}
-      </View>
-
-      {isAssignedDriver && (
-        <View style={styles.actionContainer}>
-          {journey.status === 'assigned' && (
-            <TouchableOpacity 
-              style={[styles.startJourneyButton, startingJourney && styles.disabledButton]} 
-              onPress={handleStartJourney}
-              disabled={startingJourney}
-            >
-              <Navigation size={20} color="#ffffff" />
-              <Text style={styles.startJourneyButtonText}>
-                {startingJourney ? t('journeyDetails.startingJourney') : t('journeyDetails.startJourney')}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {journey.status === 'in_progress' && (
-            <TouchableOpacity 
-              style={[styles.completeJourneyButton, completingJourney && styles.disabledButton]} 
-              onPress={handleCompleteJourney}
-              disabled={completingJourney}
-            >
-              <Target size={20} color="#ffffff" />
-              <Text style={styles.completeJourneyButtonText}>
-                {completingJourney ? t('journeyDetails.completingJourney') : t('journeyDetails.completeJourney')}
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity 
-            style={styles.mapsButton} 
-            onPress={handleOpenInMaps}
-          >
-            <Map size={20} color="#2563eb" />
-            <Text style={styles.mapsButtonText}>{t('journeyDetails.openInMaps')}</Text>
-          </TouchableOpacity>
-          
-          {/* Location tracking status */}
-          {journey.status === 'in_progress' && (
-            <View style={styles.trackingStatus}>
-              <View style={[styles.trackingIndicator, { backgroundColor: isLocationEnabled ? '#10b981' : '#ef4444' }]} />
-              <Text style={styles.trackingStatusText}>
-                {t('journeyDetails.gpsTracking')} {isLocationEnabled ? t('journeyDetails.active') : t('journeyDetails.inactive')}
-              </Text>
-              {currentLocation && (
-                <Text style={styles.lastLocationText}>
-                  {t('journeyDetails.lastUpdate')} {new Date(currentLocation.timestamp).toLocaleTimeString()}
-                </Text>
-              )}
-            </View>
-          )}
-          
-          <Text style={styles.actionNote}>
-            {journey.status === 'assigned' 
-              ? t('journeyDetails.startJourneyNote')
-              : journey.status === 'in_progress'
-              ? t('journeyDetails.gpsTrackingActiveNote')
-              : t('journeyDetails.useMapsForNavigation')
-            }
-          </Text>
-        </View>
-      )}
-
-      {/* {isBroker && (
-        <View style={styles.adminActions}>
-          <Text style={styles.sectionTitle}>{t('journeyDetails.adminActions')}</Text>
-          <TouchableOpacity 
-            style={styles.adminButton}
-            onPress={() => router.push(`/(tabs)/journeys/client-view?journeyId=${journey.id}`)}
-          >
-            <Text style={styles.adminButtonText}>{t('journeyDetails.previewClientView')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.adminButton}>
-            <Text style={styles.adminButtonText}>{t('journeyDetails.contactDriver')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.shareButton}
-            onPress={() => {
-              const clientUrl = `/client-tracking?journey=${journey.id}`;
-              if (navigator.share) {
-                navigator.share({
-                  title: t('journeys.trackYourDelivery'),
-                  text: t('journeys.trackDeliveryRealTime'),
-                  url: clientUrl,
-                });
-              } else {
-                navigator.clipboard.writeText(clientUrl);
-                Alert.alert(t('journeys.linkCopied'), t('journeys.clientTrackingLinkCopied'));
-              }
-            }}
-          >
-            <Text style={styles.shareButtonText}>{t('journeyDetails.shareClientTrackingLink')}</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
-    </ScrollView>
+    <JourneyDetails
+      journey={journey}
+      isAssignedDriver={isAssignedDriver}
+      startingJourney={startingJourney}
+      completingJourney={completingJourney}
+      refreshing={refreshing}
+      isLocationEnabled={isLocationEnabled}
+      currentLocation={currentLocation as any}
+      onStartJourney={handleStartJourney}
+      onCompleteJourney={handleCompleteJourney}
+      onOpenInMaps={handleOpenInMaps}
+      onRefresh={handleRefresh}
+      onBack={() => router.push('/(tabs)/journeys')}
+      t={t}
+      language={language}
+      translateName={translateName}
+      estimatedDuration={journey.estimatedDuration || calculateEstimatedDuration(journey.fromLocation, journey.toLocation)}
+      distance={journey.distance || calculateDistance(journey.fromLocation, journey.toLocation)}
+    />
   );
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'pending': return '#f59e0b';
-    case 'assigned': return '#2563eb';
-    case 'in_progress': return '#059669';
-    case 'completed': return '#10b981';
-    case 'cancelled': return '#dc2626';
-    default: return '#64748b';
-  }
-};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-  },
-  scrollContent: {
-    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
@@ -647,296 +494,10 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     flex: 1,
   },
-  refreshButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ed8411',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    gap: 6,
-  },
-  refreshText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   loadingText: {
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
     marginTop: 100,
-  },
-  journeyCard: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  journeyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  journeyId: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  clientInfo: {
-    gap: 4,
-  },
-  clientName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  loadInfo: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  budgetInfo: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  routeCard: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 16,
-  },
-  routeDetails: {
-    marginBottom: 20,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 8,
-  },
-  routeLine: {
-    width: 2,
-    height: 24,
-    backgroundColor: '#cbd5e1',
-    marginLeft: 10,
-    marginVertical: 4,
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  locationValue: {
-    fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '600',
-  },
-  routeStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  assignmentCard: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  assignmentInfo: {
-    gap: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
-    minWidth: 80,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: '600',
-    flex: 1,
-  },
-  notesContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  notesTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  notesText: {
-    fontSize: 14,
-    color: '#64748b',
-    lineHeight: 20,
-  },
-  actionContainer: {
-    paddingHorizontal: 24,
-    marginTop: 16,
-  },
-  startJourneyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#059669',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 12,
-    marginBottom: 12,
-  },
-  startJourneyButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  completeJourneyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10b981',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 12,
-    marginBottom: 12,
-  },
-  completeJourneyButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  mapsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 12,
-    marginBottom: 12,
-  },
-  mapsButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  actionNote: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  adminActions: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 24,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  adminButton: {
-    backgroundColor: '#f8fafc',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  adminButtonText: {
-    color: '#2563eb',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  shareButton: {
-    backgroundColor: '#10b981',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  shareButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  trackingStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  trackingIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  trackingStatusText: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  lastLocationText: {
-    fontSize: 14,
-    color: '#64748b',
   },
 });

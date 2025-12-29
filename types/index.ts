@@ -57,6 +57,7 @@ export interface ApiError {
 export interface Journey {
   id: string;
   clientId: string;
+  clientName?: string;
   driverId?: string;
   driverName?: string;
   vehicleType: string;

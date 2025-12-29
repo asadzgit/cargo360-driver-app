@@ -13,11 +13,11 @@ interface LocationData {
 }
 
 interface UseLocationTrackingProps {
-  shipmentId: number | null;
-  isTracking: boolean;
+  shipmentId?: number | null;
+  isTracking?: boolean;
 }
 
-export const useLocationTracking = ({ shipmentId, isTracking }: UseLocationTrackingProps) => {
+export const useLocationTracking = ({ shipmentId = null, isTracking = false }: UseLocationTrackingProps = {}) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [isLocationEnabled, setIsLocationEnabled] = useState(false);
