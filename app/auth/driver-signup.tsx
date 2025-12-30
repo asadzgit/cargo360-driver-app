@@ -134,6 +134,7 @@ export default function DriverSignupScreen() {
             value={formData.name}
             onChangeText={(value) => handleInputChange('name', value)}
             placeholder={t('auth.enterFullName')}
+            placeholderTextColor="#9ca3af"
             autoCapitalize="words"
           />
         </View>
@@ -145,6 +146,7 @@ export default function DriverSignupScreen() {
             value={formData.email}
             onChangeText={(value) => handleInputChange('email', value)}
             placeholder={t('auth.enterEmail')}
+            placeholderTextColor="#9ca3af"
             autoCapitalize="none"
             keyboardType="email-address"
           />
@@ -157,6 +159,7 @@ export default function DriverSignupScreen() {
             value={formData.phone}
             onChangeText={(value) => handleInputChange('phone', value)}
             placeholder={t('auth.phonePlaceholderExtended')}
+            placeholderTextColor="#9ca3af"
             keyboardType="phone-pad"
           />
           {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
@@ -169,6 +172,7 @@ export default function DriverSignupScreen() {
             value={formData.password}
             onChangeText={(value) => handleInputChange('password', value)}
             placeholder={t('auth.enterPassword')}
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>
@@ -180,6 +184,7 @@ export default function DriverSignupScreen() {
             value={formData.confirmPassword}
             onChangeText={(value) => handleInputChange('confirmPassword', value)}
             placeholder={t('auth.confirmYourPassword')}
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>

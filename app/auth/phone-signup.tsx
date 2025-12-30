@@ -60,7 +60,7 @@ export default function PhoneSignupScreen() {
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>{t('auth.fullName')}</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={t('auth.yourName')} />
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={t('auth.yourName')} placeholderTextColor="#9ca3af" />
       </View>
 
       <View style={styles.inputContainer}>
@@ -70,6 +70,7 @@ export default function PhoneSignupScreen() {
           value={phone} 
           onChangeText={handlePhoneChange} 
           placeholder={t('auth.phonePlaceholderExtended')} 
+          placeholderTextColor="#9ca3af"
           keyboardType="phone-pad" 
         />
         {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}

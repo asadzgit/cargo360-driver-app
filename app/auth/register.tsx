@@ -86,6 +86,7 @@ export default function RegisterScreen() {
             value={name}
             onChangeText={setName}
             placeholder="Enter your name"
+            placeholderTextColor="#9ca3af"
             keyboardType="default"
             autoCapitalize="none"
           />
@@ -98,6 +99,7 @@ export default function RegisterScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder="Enter your email"
+            placeholderTextColor="#9ca3af"
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -110,6 +112,7 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder="Create a password"
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>
@@ -121,6 +124,7 @@ export default function RegisterScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm your password"
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>

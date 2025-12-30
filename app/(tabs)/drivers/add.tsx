@@ -71,6 +71,7 @@ export default function AddDriverScreen() {
             value={name}
             onChangeText={setName}
             placeholder={t('dashboard.enterDriversFullName')}
+            placeholderTextColor="#9ca3af"
           />
         </View>
 
@@ -81,6 +82,7 @@ export default function AddDriverScreen() {
             value={phone}
             onChangeText={handlePhoneChange}
             placeholder={t('auth.phonePlaceholderExtended')}
+            placeholderTextColor="#9ca3af"
             keyboardType="phone-pad"
             autoCapitalize="none"
           />
