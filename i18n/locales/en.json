@@ -187,6 +187,7 @@
     "unassigned": "Unassigned",
     "assignmentDetails": "Assignment Details",
     "driver": "Driver:",
+    "broker": "Broker:",
     "assigned": "Assigned:",
     "vehicle": "Vehicle:",
     "created": "Created:",

@@ -166,7 +166,9 @@ export function JourneyDetails({
         <View style={styles.assignmentInfo}>
           <View style={styles.infoRow}>
             <User size={16} color="#64748b" />
-            <Text style={styles.infoLabel}>{t('journeyDetails.driver')}</Text>
+            <Text style={styles.infoLabel}>
+              {userRole === 'driver' ? t('journeyDetails.broker') : t('journeyDetails.driver')}
+            </Text>
             <Text style={styles.infoValue}>
               {userRole === 'driver' 
                 ? (journey.brokerName ? translateName(journey.brokerName) : t('journeyDetails.unassigned'))
