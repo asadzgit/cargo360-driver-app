@@ -269,6 +269,7 @@ export default function ProfileScreen() {
                 value={formPhone}
                 onChangeText={setFormPhone}
                 placeholder={t('profile.phoneNumber')}
+                placeholderTextColor="#9ca3af"
                 keyboardType="phone-pad"
               />
             )}
@@ -289,6 +290,7 @@ export default function ProfileScreen() {
                 value={formCompany}
                 onChangeText={setFormCompany}
                 placeholder={t('profile.companyName')}
+                placeholderTextColor="#9ca3af"
               />
             )}
           </View>
@@ -310,6 +312,7 @@ export default function ProfileScreen() {
                   onChangeText={handleCnicChange}
                   onBlur={validateCnic}
                   placeholder={t('profile.cnicNumber')}
+                  placeholderTextColor="#9ca3af"
                   keyboardType="number-pad"
                   maxLength={13}
                 />
@@ -333,6 +336,7 @@ export default function ProfileScreen() {
                 value={formLicense}
                 onChangeText={setFormLicense}
                 placeholder={t('profile.licenseNumber')}
+                placeholderTextColor="#9ca3af"
               />
             )}
           </View>
@@ -352,6 +356,7 @@ export default function ProfileScreen() {
                 value={formVehicleRegistration}
                 onChangeText={setFormVehicleRegistration}
                 placeholder={t('profile.vehicleRegistrationNumber')}
+                placeholderTextColor="#9ca3af"
               />
             )}
           </View>

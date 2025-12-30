@@ -83,7 +83,7 @@ export default function ForgotPinScreen() {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#9ca3af"
           />
         </View>
 

@@ -53,6 +53,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder={t('auth.enterEmail')}
+            placeholderTextColor="#9ca3af"
             keyboardType="email-address"
             autoCapitalize="none"
           />
@@ -65,6 +66,7 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder={t('auth.enterPassword')}
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>

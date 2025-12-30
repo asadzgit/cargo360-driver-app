@@ -57,6 +57,7 @@ export default function DriverLoginScreen() {
             value={email}
             onChangeText={setEmail}
             placeholder={t('auth.enterEmail')}
+            placeholderTextColor="#9ca3af"
             autoCapitalize="none"
             keyboardType="email-address"
           />
@@ -69,6 +70,7 @@ export default function DriverLoginScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder={t('auth.enterPassword')}
+            placeholderTextColor="#9ca3af"
             secureTextEntry
           />
         </View>

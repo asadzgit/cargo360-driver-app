@@ -87,6 +87,7 @@ export default function PhoneEntryScreen() {
           value={phone}
           onChangeText={handlePhoneChange}
           placeholder={t('auth.phonePlaceholder')}
+          placeholderTextColor="#9ca3af"
           keyboardType="phone-pad"
           autoCapitalize="none"
         />

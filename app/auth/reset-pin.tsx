@@ -61,7 +61,7 @@ export default function ResetPinScreen() {
             onChangeText={setCode}
             autoCapitalize="none"
             keyboardType="number-pad"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#9ca3af"
           />
         </View>
 
@@ -75,7 +75,7 @@ export default function ResetPinScreen() {
             secureTextEntry
             keyboardType="number-pad"
             maxLength={6}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#9ca3af"
           />
         </View>
 
@@ -89,7 +89,7 @@ export default function ResetPinScreen() {
             secureTextEntry
             keyboardType="number-pad"
             maxLength={6}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#9ca3af"
           />
         </View>
 

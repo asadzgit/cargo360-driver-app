@@ -55,6 +55,7 @@ export default function SetPinScreen() {
             value={pin}
             onChangeText={setPin}
             placeholder="Enter your PIN"
+            placeholderTextColor="#9ca3af"
             keyboardType="number-pad"
             maxLength={6}
             secureTextEntry={!showPin}
@@ -82,6 +83,7 @@ export default function SetPinScreen() {
             value={confirm}
             onChangeText={setConfirm}
             placeholder="Confirm your PIN"
+            placeholderTextColor="#9ca3af"
             keyboardType="number-pad"
             maxLength={6}
             secureTextEntry={!showConfirmPin}
