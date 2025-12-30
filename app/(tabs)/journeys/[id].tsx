@@ -147,20 +147,38 @@ export default function JourneyDetailScreen() {
         status: shipment.status,
       });
       
+      // Try to get driver name and broker name from cached journey if API response doesn't include it
+      const cachedJourney = journeys.find(j => j.id === normalizedId);
+      let driverName = shipment.driverId ? shipment.Driver?.name : undefined;
+      let brokerName = shipment.Trucker?.name;
+      
+      // If driverId exists but Driver name is not in API response, try to get it from cached journey
+      if (shipment.driverId && !driverName && cachedJourney?.driverName) {
+        driverName = cachedJourney.driverName;
+        console.log('Using driver name from cached journey:', driverName);
+      }
+      
+      // If broker name is not in API response, try to get it from cached journey
+      if (!brokerName && cachedJourney?.brokerName) {
+        brokerName = cachedJourney.brokerName;
+        console.log('Using broker name from cached journey:', brokerName);
+      }
+      
       // Map shipment to journey format
       const mappedJourney = {
         id: shipment.id.toString(),
         clientId: shipment.customerId.toString(),
         clientName: shipment.Customer?.name || t('journeyDetails.unknownClient'),
         driverId: shipment.driverId?.toString() || shipment.truckerId?.toString(),
-        driverName: shipment.Driver?.name || shipment.Trucker?.name || t('journeyDetails.unassigned'),
+        driverName: driverName, // Use driver name from API or cached journey
+        brokerName: brokerName, // Broker/trucker name who assigned the journey
         vehicleType: shipment.vehicleType,
         loadType: shipment.cargoType,
         fromLocation: shipment.pickupLocation,
         toLocation: shipment.dropLocation,
-        status: mapApiStatusToJourneyStatus(shipment.status),
+        status: mapApiStatusToJourneyStatus(shipment.status, shipment.driverId),
         createdAt: shipment.createdAt,
-        assignedAt: shipment.status === 'accepted' ? shipment.updatedAt : undefined,
+        assignedAt: shipment.status === 'accepted' && shipment.driverId ? shipment.updatedAt : undefined,
         startedAt: ['picked_up', 'in_transit'].includes(shipment.status) ? shipment.updatedAt : undefined,
         completedAt: shipment.status === 'delivered' ? shipment.updatedAt : undefined,
         notes: shipment.description,
@@ -204,7 +222,7 @@ export default function JourneyDetailScreen() {
     }
   }, [id, reloadJourneys]);
 
-  const mapApiStatusToJourneyStatus = (apiStatus: string) => {
+  const mapApiStatusToJourneyStatus = (apiStatus: string, driverId?: number) => {
     const statusMap: Record<string, string> = {
       'pending': 'pending',
       'confirmed': 'assigned', // Customer confirmed shipment, treat as assigned if driver is assigned
@@ -214,7 +232,15 @@ export default function JourneyDetailScreen() {
       'delivered': 'completed',
       'cancelled': 'cancelled',
     };
-    return statusMap[apiStatus] || 'pending';
+    let mappedStatus = statusMap[apiStatus] || 'pending';
+    
+    // If there's no driver assigned, status should be 'pending' (unassigned) 
+    // even if API status is 'accepted' or 'confirmed'
+    if (!driverId && (mappedStatus === 'assigned' || apiStatus === 'accepted' || apiStatus === 'confirmed')) {
+      mappedStatus = 'pending';
+    }
+    
+    return mappedStatus;
   };
 
 
@@ -312,7 +338,7 @@ export default function JourneyDetailScreen() {
       const updatedShipment = response.data.shipment;
       const updatedJourney = {
         ...journey,
-        status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        status: mapApiStatusToJourneyStatus(updatedShipment.status, updatedShipment.driverId),
         apiStatus: updatedShipment.status,
         startedAt: updatedShipment.updatedAt,
       };
@@ -362,7 +388,7 @@ export default function JourneyDetailScreen() {
       const updatedShipment = response.data.shipment;
       const updatedJourney = {
         ...journey,
-        status: mapApiStatusToJourneyStatus(updatedShipment.status),
+        status: mapApiStatusToJourneyStatus(updatedShipment.status, updatedShipment.driverId),
         apiStatus: updatedShipment.status,
         completedAt: updatedShipment.updatedAt,
       };
@@ -467,6 +493,7 @@ export default function JourneyDetailScreen() {
       translateName={translateName}
       estimatedDuration={journey.estimatedDuration || calculateEstimatedDuration(journey.fromLocation, journey.toLocation)}
       distance={journey.distance || calculateDistance(journey.fromLocation, journey.toLocation)}
+      userRole={user?.role}
     />
   );
 }

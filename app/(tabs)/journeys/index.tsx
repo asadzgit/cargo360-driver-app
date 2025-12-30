@@ -45,7 +45,12 @@ export default function JourneysScreen() {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string, driverId?: string) => {
+    // If status is pending and there's no driver, show as "Unassigned"
+    if (status === 'pending' && !driverId) {
+      return t('journeys.unassigned') || 'Unassigned';
+    }
+    
     switch (status) {
       case 'pending': return 'Pending Assignment';
       case 'assigned': return 'Assigned';
@@ -135,7 +140,7 @@ export default function JourneysScreen() {
                     <Text style={styles.vehicleType}>{journey.vehicleType}</Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>
-                    <Text style={styles.statusText}>{getStatusText(journey.status)}</Text>
+                    <Text style={styles.statusText}>{getStatusText(journey.status, journey.driverId)}</Text>
                   </View>
                 </View>
 
@@ -154,7 +159,10 @@ export default function JourneysScreen() {
                   <View style={styles.footerItem}>
                     <User size={16} color="#64748b" />
                     <Text style={styles.footerText}>
-                      {journey.driverName || t('journeys.unassigned')}
+                      {isBroker 
+                        ? (journey.driverName || t('journeys.unassigned'))
+                        : (journey.brokerName || t('journeys.unassigned'))
+                      }
                     </Text>
                   </View>
                   <View style={styles.footerItem}>
