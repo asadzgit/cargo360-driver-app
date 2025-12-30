@@ -29,6 +29,7 @@ interface JourneyDetailsProps {
   translateName: (name: string | null | undefined) => string;
   estimatedDuration: string;
   distance: string;
+  userRole?: string; // User role to determine what to display
 }
 
 export function JourneyDetails({
@@ -49,8 +50,14 @@ export function JourneyDetails({
   translateName,
   estimatedDuration,
   distance,
+  userRole,
 }: JourneyDetailsProps) {
-  const humanizeStatus = (status: string) => {
+  const humanizeStatus = (status: string, driverId?: string) => {
+    // If status is pending and there's no driver, show as "Unassigned"
+    if (status === 'pending' && !driverId) {
+      return t('journeys.unassigned') || 'Unassigned';
+    }
+    
     const statusMap: Record<string, string> = {
       'pending': 'Pending Assignment',
       'assigned': 'Assigned to Driver',
@@ -99,7 +106,7 @@ export function JourneyDetails({
         <View style={styles.journeyHeader}>
           <Text style={styles.journeyId}>C360-PK-{journey.id}</Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(journey.status) }]}>
-            <Text style={styles.statusText}>{humanizeStatus(journey.status)}</Text>
+            <Text style={styles.statusText}>{humanizeStatus(journey.status, journey.driverId)}</Text>
           </View>
         </View>
 
@@ -160,7 +167,12 @@ export function JourneyDetails({
           <View style={styles.infoRow}>
             <User size={16} color="#64748b" />
             <Text style={styles.infoLabel}>{t('journeyDetails.driver')}</Text>
-            <Text style={styles.infoValue}>{translateName(journey.driverName)}</Text>
+            <Text style={styles.infoValue}>
+              {userRole === 'driver' 
+                ? (journey.brokerName ? translateName(journey.brokerName) : t('journeyDetails.unassigned'))
+                : (journey.driverName ? translateName(journey.driverName) : t('journeyDetails.unassigned'))
+              }
+            </Text>
           </View>
           
           {journey.assignedAt && (

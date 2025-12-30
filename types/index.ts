@@ -60,6 +60,7 @@ export interface Journey {
   clientName?: string;
   driverId?: string;
   driverName?: string;
+  brokerName?: string; // Broker/trucker name who assigned the journey
   vehicleType: string;
   loadType: string;
   fromLocation: string;

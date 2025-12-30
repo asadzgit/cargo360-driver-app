@@ -8,6 +8,7 @@ interface Journey {
   clientId: string;
   driverId?: string;
   driverName?: string;
+  brokerName?: string; // Broker/trucker name who assigned the journey
   vehicleType: string;
   loadType: string;
   fromLocation: string;
@@ -37,18 +38,28 @@ const mapShipmentToJourney = (shipment: Shipment): Journey => {
     'cancelled': 'cancelled',
   };
 
+  // Determine the base status from API status
+  let mappedStatus = statusMap[shipment.status] || 'pending';
+  
+  // If there's no driver assigned, status should be 'pending' (unassigned) 
+  // even if API status is 'accepted' or mapped status is 'assigned'
+  if (!shipment.driverId && (mappedStatus === 'assigned' || shipment.status === 'accepted')) {
+    mappedStatus = 'pending';
+  }
+
   return {
     id: shipment.id.toString(),
     clientId: shipment.customerId.toString(),
     driverId: shipment.driverId?.toString(), // Only set driverId if there's actually a driver (not trucker)
-    driverName: shipment.Driver?.name || shipment.Trucker?.name,
+    driverName: shipment.driverId ? shipment.Driver?.name : undefined, // Only show driver name if driver is assigned
+    brokerName: shipment.Trucker?.name, // Broker/trucker name who assigned the journey
     vehicleType: shipment.vehicleType,
     loadType: shipment.cargoType,
     fromLocation: shipment.pickupLocation,
     toLocation: shipment.dropLocation,
-    status: statusMap[shipment.status] || 'pending',
+    status: mappedStatus,
     createdAt: shipment.createdAt,
-    assignedAt: shipment.status === 'accepted' ? shipment.updatedAt : undefined,
+    assignedAt: shipment.status === 'accepted' && shipment.driverId ? shipment.updatedAt : undefined,
     startedAt: shipment.status === 'picked_up' || shipment.status === 'in_transit' ? shipment.updatedAt : undefined,
     completedAt: shipment.status === 'delivered' ? shipment.updatedAt : undefined,
     budget: shipment.budget,

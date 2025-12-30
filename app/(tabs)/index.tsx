@@ -42,8 +42,12 @@ export default function DashboardScreen() {
   const activeJourneys = journeys.filter(j => j.status === 'in_progress');
   const pendingJourneys = journeys.filter(j => j.status === 'pending');
 
-  const getStatusText = (status: string) => {
-    // Return raw status value without translation
+  const getStatusText = (status: string, driverId?: string) => {
+    // If status is pending and there's no driver, show as "Unassigned"
+    if (status === 'pending' && !driverId) {
+      return t('journeys.unassigned') || 'Unassigned';
+    }
+    // Return raw status value without translation for other cases
     return status;
   };
 
@@ -263,7 +267,7 @@ export default function DashboardScreen() {
                   <Text style={styles.boldLabel}>{t('dashboard.toLabel')}</Text> {journey.toLocation}
                 </Text>
                 <Text style={styles.activityTime}>
-                  <Text style={styles.boldLabel}>{t('dashboard.status')}:</Text> {journey.status}
+                  <Text style={styles.boldLabel}>{t('dashboard.status')}:</Text> {getStatusText(journey.status, journey.driverId)}
                 </Text>
               </View>
             </TouchableOpacity>
