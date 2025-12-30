@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    color: '#1e293b',
   },
   eyeButton: {
     padding: 12,

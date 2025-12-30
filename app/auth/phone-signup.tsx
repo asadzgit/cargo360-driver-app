@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff' },
+  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#ffffff', color: '#1e293b' },
   cta: { backgroundColor: '#059669', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 8 },
   ctaText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   disabled: { opacity: 0.6 },
