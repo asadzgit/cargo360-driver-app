@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#64748b', marginTop: 8, marginBottom: 24 },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, backgroundColor: '#ffffff' },
+  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, backgroundColor: '#ffffff', color: '#1e293b' },
   roleSwitcher: { flexDirection: 'row', gap: 8, marginTop: 8, marginBottom: 16 },
   roleButton: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db', alignItems: 'center', backgroundColor: '#fff' },
   roleButtonActive: { backgroundColor: '#e0f2fe', borderColor: '#38bdf8' },

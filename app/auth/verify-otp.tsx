@@ -118,6 +118,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     letterSpacing: 4,
     textAlign: 'left',
+    color: '#1e293b',
   },
   label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '600' },

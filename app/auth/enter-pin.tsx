@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     paddingVertical: 14,
     minHeight: 48,
+    color: '#1e293b',
   },
   eyeButton: {
     padding: 12,
