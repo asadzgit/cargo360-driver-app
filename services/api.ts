@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenStorage } from '@/services/tokenStorage';
+import socketService from '@/services/socketService';
 
 const BASE_URL = 'https://cargo360-api.onrender.com';
 
@@ -208,6 +209,9 @@ class ApiService {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
     });
+
+    // Reconnect socket with new token
+    socketService.reconnect(data.accessToken);
 
     return data;
   }

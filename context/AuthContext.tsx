@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService } from '@/services/api';
 import { tokenStorage } from '@/services/tokenStorage';
+import socketService from '@/services/socketService';
 // import { stopBackgroundLocationTracking } from '@/tasks/locationTrackingTask';
 interface User {
   id: number;
@@ -68,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profileResponse = await apiService.getProfile();
       setUser(profileResponse.user);
       await AsyncStorage.setItem('user', JSON.stringify(profileResponse.user));
+
+      // Connect socket after successful session bootstrap
+      socketService.connect(accessToken);
     } catch (error) {
       console.warn('Session bootstrap failed:', error);
       await clearSession();
@@ -78,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearSession = async () => {
+    // Disconnect socket on logout
+    socketService.disconnect();
     await Promise.all([
       tokenStorage.clearTokens(),
       AsyncStorage.removeItem('user'),
@@ -106,6 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+      // Connect socket after successful login
+      socketService.connect(response.accessToken);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -133,6 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+      // Connect socket after successful login
+      socketService.connect(response.accessToken);
     } catch (error) {
       console.error('Driver login error:', error);
       throw error;
@@ -145,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiService.phoneLogin({ phone, pin });
       setUser(response.user);
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
+
+      // Connect socket after successful login
+      socketService.connect(response.accessToken);
     } catch (error) {
       // Don't log to console - let the UI handle the error message
       throw error;

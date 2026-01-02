@@ -5,6 +5,7 @@ import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 // import { NotificationProvider } from '@/context/NotificationContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import NotificationBanner from '@/components/NotificationBanner';
 // Import i18n configuration
 import '@/i18n';
 // Import background location task so TaskManager.defineTask is registered on startup
@@ -24,6 +25,7 @@ export default function RootLayout() {
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />
+          <NotificationBanner />
         {/* </NotificationProvider> */}
       </AuthProvider>
     </LanguageProvider>

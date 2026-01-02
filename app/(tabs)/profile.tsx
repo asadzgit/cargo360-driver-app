@@ -385,7 +385,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={styles.supportRow}
-          onPress={() => Linking.openURL('https://cargo360pk.com/privacy-policy')}
+          onPress={() => Linking.openURL('https://app.cargo360pk.com/privacy-policy')}
         >
           <Contact size={20} color="#64748B" />
           <Text style={styles.supportLinkText}>{t('profile.privacyPolicy')}</Text>

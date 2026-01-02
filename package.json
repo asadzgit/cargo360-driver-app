@@ -15,7 +15,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@lucide/lab": "^0.1.2",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "expo": "~53.0.23",
@@ -37,11 +37,9 @@
     "expo-system-ui": "~5.0.11",
     "expo-task-manager": "13.1.6",
     "expo-web-browser": "~14.2.0",
-    "i18next": "^25.7.3",
     "lucide-react-native": "^0.475.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-i18next": "^16.5.0",
     "react-native": "0.79.6",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-maps": "1.20.1",
@@ -51,7 +49,8 @@
     "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
