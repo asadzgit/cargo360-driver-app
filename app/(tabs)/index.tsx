@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Users, Truck, MapPin, Clock, X, Check, RefreshCw, ArrowLeft } from 'lucide-react-native';
 import { useScrollToTopOnFocus } from '@/hooks/useScrollToTopOnFocus';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
@@ -138,19 +139,20 @@ export default function DashboardScreen() {
   };
 
   return (
-    <ScrollView 
-      ref={scrollRef} 
-      style={styles.container} 
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#ed8411']}
-          tintColor="#ed8411"
-        />
-      }
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView 
+        ref={scrollRef} 
+        style={styles.container} 
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#ed8411']}
+            tintColor="#ed8411"
+          />
+        }
+      >
       <View style={styles.header}>
         <Text style={styles.greeting}>
           {isBroker ? t('dashboard.brokerDashboard') : t('dashboard.driverDashboard')}
@@ -421,7 +423,10 @@ export default function DashboardScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+
+      <WhatsAppButton accessibilityLabel="Contact Cargo360 support on WhatsApp" />
+    </View>
   );
 }
 

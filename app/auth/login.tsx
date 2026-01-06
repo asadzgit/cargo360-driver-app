@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -90,6 +91,8 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <WhatsAppButton accessibilityLabel="Contact Cargo360 support on WhatsApp" />
     </View>
   );
 }

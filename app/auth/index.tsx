@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { apiService } from '@/services/api';
 import { validatePakistaniPhone } from '@/utils/phoneValidation';
 import { LanguageToggle } from '@/components/LanguageToggle';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export default function PhoneEntryScreen() {
   const { t, i18n } = useTranslation();
@@ -116,6 +117,8 @@ export default function PhoneEntryScreen() {
       {/* <TouchableOpacity onPress={() => router.push('/auth/login')} style={styles.altLink}>
         <Text style={styles.altText}>Use email/password (broker)</Text>
       </TouchableOpacity> */}
+
+      <WhatsAppButton accessibilityLabel="Contact Cargo360 support on WhatsApp" />
     </View>
   );
 }
