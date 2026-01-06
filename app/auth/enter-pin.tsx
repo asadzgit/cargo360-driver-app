@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { Eye, EyeOff } from 'lucide-react-native';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export default function EnterPinScreen() {
   const { t } = useTranslation();
@@ -87,6 +88,8 @@ export default function EnterPinScreen() {
       >
         <Text style={{ color: '#059669', fontWeight: '600' }}>{t('auth.forgotPin')}</Text>
       </TouchableOpacity>
+
+      <WhatsAppButton accessibilityLabel="Contact Cargo360 support on WhatsApp" />
     </View>
   );
 }

@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft } from 'lucide-react-native';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -148,6 +149,8 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <WhatsAppButton accessibilityLabel="Contact Cargo360 support on WhatsApp" />
     </View>
   );
 }
